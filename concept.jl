@@ -3,10 +3,12 @@ using LinearAlgebra: normalize, norm
 using Dates: now, value, DateTime, Millisecond
 using Plots
 gr()
+
 const M_EARTH::Float64 = 6e22
 const DIST::Float64 = 1e9
 # const G::Float64 = 6.674e-11
-const G::Float64 = 10
+const G::Float64 = 30
+const EPS_SOFTENING::Float64 = 1e6
 
 mutable struct Particle
     id :: Int
@@ -33,7 +35,7 @@ function apply_force!(force::Vector{Float64}, particle::Particle)::Nothing
 end
 
 function force_pairwise!(j::Particle, i::Particle)::Nothing
-    distance_inv::Float64 = 1/norm(j.pos-i.pos)
+    distance_inv::Float64 = 1/(norm(j.pos-i.pos) + EPS_SOFTENING)
     f_ji::Vector{Float64} = normalize(j.pos - i.pos) * -G * j.mass * i.mass * distance_inv * distance_inv
     f_ij::Vector{Float64} = -f_ji
     apply_force!(f_ji, j)
@@ -61,11 +63,11 @@ function step!(particles::Vector{Particle}, dt::Float64)::Nothing
     nothing
 end
 
-function velocity_arrow!(particle::Particle, pos_norm::Vector{Float64})::Nothing
-    @assert particle.pos[1]/particle.pos[2] ≈ pos_norm[1]/pos_norm[2]
-    arrow_start::Vector{Float64} = pos_norm
-    arrow_end::Vector{Float64} = pos_norm + normalize(particle.v)/20
-    plot!(arrow_start, arrow_end, arrow=true,color=:white,linewidth=2,label="")  
+function velocity_arrow!(particle::Particle)::Nothing
+    # @assert particle.pos[1]/particle.pos[2] ≈ pos_norm[1]/pos_norm[2]
+    arrow_start::Vector{Float64} = particle.pos
+    arrow_end::Vector{Float64} = arrow_start + normalize(particle.v) * DIST/20
+    plot!(arrow_start, arrow_end, arrow=true, color=:white, linewidth=2, label="")  
     nothing
 end
 
@@ -74,33 +76,34 @@ function showparticles(particles::Vector{Particle})::Nothing
     positions::Vector{Vector{Float64}} = [p.pos for p in particles]
 
     xs::Vector{Float64} = getindex.(positions, 1)
-    max_x::Float64 = maximum(xs)
-    xs_normalised::Vector{Float64} = map(x -> x/max_x, xs)
-    # a = round.(xs_normalised, digits=5)
-    # println("xs, $a")
-
     ys::Vector{Float64} = getindex.(positions, 2)
-    max_y::Float64 = maximum(ys)
-    ys_normalised::Vector{Float64} = map(y -> y/max_y, ys)
 
-    p = scatter(xs_normalised, ys_normalised, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
-    # p = scatter(xs, ys, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
-    velocity_arrow!.(particles, collect.(zip(xs_normalised, ys_normalised)))
+    # max_xy::Float64 = maximum(abs.([xs; ys]))
+    # xs_normalised::Vector{Float64} = collect(map(x -> x/max_xy, xs))
+    # ys_normalised::Vector{Float64} = collect(map(y -> y/max_xy, ys))
+
+    # p = scatter(xs_normalised, ys_normalised, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
+    p = scatter(xs, ys, legend=false, reuse=true, show=true, background_colour=:black)
+    # velocity_arrow!.(particles)
+    xlims!(-10 * DIST, 10 * DIST)
+    ylims!(-10 * DIST, 10 * DIST)
     display(p)
     nothing
 end
 
 function random_particle(id::Int) :: Particle
     m::Float64 = M_EARTH * (rand() + 0.5)
-    x::Float64 = (rand() - 0.5) * DIST
-    y::Float64 = (rand() - 0.5) * DIST
-    v_x::Float64 = (rand() - 0.5) * DIST * 0.05
-    v_y::Float64 = (rand() - 0.5) * DIST * 0.05
-    Particle(id, m, [x, y], [v_x, v_y])
+    pos::Vector{Float64} = rand(Float64, 2) * DIST * 3
+    println(pos)
+    v::Vector{Float64} = rand(Float64, 2) * DIST * 0.1
+    Particle(id, m, pos, v)
 end
 
 function main()
-    particles::Vector{Particle} = [random_particle(i) for i in 1:3]
+    N::Int = 12
+    particles::Vector{Particle} = [random_particle(i) for i in 1:N]
+    centre::Particle=Particle(N+1, M_EARTH*50, zeros(Float64, 2), zeros(Float64, 2), true)
+    push!(particles, centre)
     t::Float64 = 0
     fps::Int = 30
     dt::Float64 = 1/fps
@@ -113,9 +116,9 @@ function main()
 
         step!(particles, dt)
         showparticles(particles)
-        for particle in particles
-            println(round.(particle.v, digits=4))
-        end
+        # for particle in particles
+        #     println(round.(particle.v, digits=4))
+        # end
 
         timetaken = convert(Millisecond, now() - start)
         if (v = value(timetaken)) < dt * 1000
