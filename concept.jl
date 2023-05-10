@@ -2,7 +2,7 @@ using Combinatorics: combinations, Combinations
 using LinearAlgebra: normalize, norm
 using Dates: now, value, DateTime, Millisecond
 using Plots
-
+gr()
 const M_EARTH::Float64 = 6e22
 const DIST::Float64 = 1e9
 # const G::Float64 = 6.674e-11
@@ -61,22 +61,31 @@ function step!(particles::Vector{Particle}, dt::Float64)::Nothing
     nothing
 end
 
+function velocity_arrow!(particle::Particle, pos_norm::Vector{Float64})::Nothing
+    @assert particle.pos[1]/particle.pos[2] ≈ pos_norm[1]/pos_norm[2]
+    arrow_start::Vector{Float64} = pos_norm
+    arrow_end::Vector{Float64} = pos_norm + normalize(particle.v)/20
+    plot!(arrow_start, arrow_end, arrow=true,color=:white,linewidth=2,label="")  
+    nothing
+end
+
 function showparticles(particles::Vector{Particle})::Nothing
 
     positions::Vector{Vector{Float64}} = [p.pos for p in particles]
 
     xs::Vector{Float64} = getindex.(positions, 1)
-    # max_x::Float64 = maximum(xs)
-    # xs_normalised::Vector{Float64} = map(x -> x/max_x, xs)
+    max_x::Float64 = maximum(xs)
+    xs_normalised::Vector{Float64} = map(x -> x/max_x, xs)
     # a = round.(xs_normalised, digits=5)
     # println("xs, $a")
 
     ys::Vector{Float64} = getindex.(positions, 2)
-    # max_y::Float64 = maximum(ys)
-    # ys_normalised::Vector{Float64} = map(y -> y/max_y, ys)
+    max_y::Float64 = maximum(ys)
+    ys_normalised::Vector{Float64} = map(y -> y/max_y, ys)
 
-    # p = scatter(xs_normalised, ys_normalised, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
-    p = scatter(xs, ys, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
+    p = scatter(xs_normalised, ys_normalised, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
+    # p = scatter(xs, ys, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
+    velocity_arrow!.(particles, collect.(zip(xs_normalised, ys_normalised)))
     display(p)
     nothing
 end
@@ -93,7 +102,6 @@ end
 function main()
     particles::Vector{Particle} = [random_particle(i) for i in 1:3]
     t::Float64 = 0
-    speed_modifier::Float64 = 1 # how much faster you see it than it actually is
     fps::Int = 30
     dt::Float64 = 1/fps
 
@@ -103,7 +111,7 @@ function main()
             force_pairwise!(pair...)
         end
 
-        step!(particles, dt*speed_modifier)
+        step!(particles, dt)
         showparticles(particles)
         for particle in particles
             println(round.(particle.v, digits=4))
