@@ -35,8 +35,8 @@ let id::Int = 0
             elseif fixed && norm(v) != 0
                 error("fixed is incomaptable with velocity.")
             end
-            x += 1
-            new(x, mass, pos, v, zeros(Float64, 2), fixed)
+            id += 1
+            new(id, mass, pos, v, zeros(Float64, 2), fixed)
         end
     end
 end
