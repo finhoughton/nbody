@@ -5,10 +5,14 @@ using Plots
 gr()
 
 const M_EARTH::Float64 = 6e22
+
 const DIST::Float64 = 1e9
+
 # const G::Float64 = 6.674e-11
 const G::Float64 = 30
+
 const EPS_SOFTENING::Float64 = 1e7
+# stop forcess becoming too big when objects are very close
 
 let id::Int = 0
     mutable struct Particle
@@ -93,18 +97,20 @@ function showparticles(particles::Vector{Particle})::Nothing
     nothing
 end
 
-function random_particle(id::Int) :: Particle
+function random_particle() :: Particle
     m::Float64 = M_EARTH * (rand() + 0.5)
     pos::Vector{Float64} = (rand(Float64, 2) * 2 - ones(2)) * DIST * 4
     v::Vector{Float64} = (rand(Float64, 2) * 2 - ones(2)) * DIST * 0.5
-    Particle(id, m, pos, v)
+    Particle(m, pos, v)
 end
 
 function main()
     N::Int = 12
-    particles::Vector{Particle} = [random_particle(i) for i in 1:N]
-    centre::Particle=Particle(N+1, M_EARTH*50, zeros(Float64, 2), zeros(Float64, 2), true)
-    push!(particles, centre)
+    particles::Vector{Particle} = [random_particle() for i in 1:N]
+    m_1::Particle=Particle(M_EARTH*50, [-5 * DIST, 0], zeros(Float64, 2), true)
+    m_2::Particle=Particle(M_EARTH*50, [5 * DIST, 0], zeros(Float64, 2), true)
+    push!(particles, m_1)
+    push!(particles, m_2)
     t::Float64 = 0
     fps::Int = 30
     dt::Float64 = 1/fps
