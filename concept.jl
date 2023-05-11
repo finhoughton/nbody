@@ -8,31 +8,32 @@ const M_EARTH::Float64 = 6e22
 const DIST::Float64 = 1e9
 # const G::Float64 = 6.674e-11
 const G::Float64 = 30
-const EPS_SOFTENING::Float64 = 1e6
+const EPS_SOFTENING::Float64 = 1e7
 
-mutable struct Particle
-    id :: Int
-    mass :: Float64
-    pos :: Vector{Float64}
-    v :: Vector{Float64}
-    force_applied :: Vector{Float64}
-    fixed::Bool
-    function Particle(
-        id::Int,
-        mass::Float64,
-        pos::Vector{Float64},
-        v::Vector{Float64}=zeros(Float64, 2),
-        fixed::Bool=false
-    )::Particle
-
-        if size(pos, 1) != 2 && size(v, 1) != 2
-            error("Particle only supports 2D positions and velocity")
-        elseif mass <= 0
-            error("particle mass must be positive")
-        elseif fixed && norm(v) != 0
-            error("fixed is incomaptable with velocity.")
+let id::Int = 0
+    mutable struct Particle
+        id::Int
+        mass::Float64
+        pos::Vector{Float64}
+        v::Vector{Float64}
+        force_applied::Vector{Float64}
+        fixed::Bool
+        function Particle(
+            mass::Float64,
+            pos::Vector{Float64},
+            v::Vector{Float64}=zeros(Float64, 2),
+            fixed::Bool=false
+        )::Particle
+            if size(pos, 1) != 2 && size(v, 1) != 2
+                error("Particle only supports 2D positions and velocity")
+            elseif mass <= 0
+                error("particle mass must be positive")
+            elseif fixed && norm(v) != 0
+                error("fixed is incomaptable with velocity.")
+            end
+            x += 1
+            new(x, mass, pos, v, zeros(Float64, 2), fixed)
         end
-        new(id, mass, pos, v, zeros(Float64, 2), fixed)
     end
 end
 
@@ -84,12 +85,6 @@ function showparticles(particles::Vector{Particle})::Nothing
 
     xs::Vector{Float64} = getindex.(positions, 1)
     ys::Vector{Float64} = getindex.(positions, 2)
-
-    # max_xy::Float64 = maximum(abs.([xs; ys]))
-    # xs_normalised::Vector{Float64} = collect(map(x -> x/max_xy, xs))
-    # ys_normalised::Vector{Float64} = collect(map(y -> y/max_xy, ys))
-
-    # p = scatter(xs_normalised, ys_normalised, showaxis=false, legend=false, grid=false, reuse=true, show=true, background_colour=:black)
     p = scatter(xs, ys, legend=false, reuse=true, show=true, background_colour=:black)
     # velocity_arrow!.(particles)
     xlims!(-10 * DIST, 10 * DIST)
@@ -100,16 +95,15 @@ end
 
 function random_particle(id::Int) :: Particle
     m::Float64 = M_EARTH * (rand() + 0.5)
-    pos::Vector{Float64} = rand(Float64, 2) * DIST * 3
-    println(pos)
-    v::Vector{Float64} = rand(Float64, 2) * DIST * 0.1
+    pos::Vector{Float64} = (rand(Float64, 2) * 2 - ones(2)) * DIST * 4
+    v::Vector{Float64} = (rand(Float64, 2) * 2 - ones(2)) * DIST * 0.5
     Particle(id, m, pos, v)
 end
 
 function main()
     N::Int = 12
     particles::Vector{Particle} = [random_particle(i) for i in 1:N]
-    centre::Particle=Particle(N+1, M_EARTH*500, zeros(Float64, 2), zeros(Float64, 2), true)
+    centre::Particle=Particle(N+1, M_EARTH*50, zeros(Float64, 2), zeros(Float64, 2), true)
     push!(particles, centre)
     t::Float64 = 0
     fps::Int = 30
