@@ -102,7 +102,7 @@ end
 function main()
     N::Int = 12
     particles::Vector{Particle} = [random_particle(i) for i in 1:N]
-    centre::Particle=Particle(N+1, M_EARTH*50, zeros(Float64, 2), zeros(Float64, 2), true)
+    centre::Particle=Particle(N+1, M_EARTH*500, zeros(Float64, 2), zeros(Float64, 2), true)
     push!(particles, centre)
     t::Float64 = 0
     fps::Int = 30
