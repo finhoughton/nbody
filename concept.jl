@@ -38,7 +38,9 @@ let id::Int = 0
             id += 1
             new(id, mass, pos, v, zeros(Float64, 2), fixed)
         end
-        Particle(mass::Float64, pos::Vector{Float64}, fixed::Bool) = Particle(mass, pos, zeros(Float64, 2), fixed)
+        function Particle(mass::Float64, pos::Vector{Float64}, fixed::Bool)::Particle
+            Particle(mass, pos, zeros(Float64, 2), fixed)
+        end
     end
 end 
 
@@ -77,24 +79,15 @@ function step!(particles::Vector{Particle}, dt::Float64)::Nothing
     nothing
 end
 
-function velocity_arrow!(particle::Particle)::Nothing
-    # @assert particle.pos[1]/particle.pos[2] ≈ pos_norm[1]/pos_norm[2]
-    arrow_start::Vector{Float64} = particle.pos
-    arrow_end::Vector{Float64} = arrow_start + normalize(particle.v) * DIST/20
-    plot!(arrow_start, arrow_end, arrow=true, color=:white, linewidth=2, label="")  
-    nothing
-end
-
 function showparticles(particles::Vector{Particle})::Nothing
 
     positions::Vector{Vector{Float64}} = [p.pos for p in particles]
 
     xs::Vector{Float64} = getindex.(positions, 1)
     ys::Vector{Float64} = getindex.(positions, 2)
-    p = scatter(xs, ys, legend=false, reuse=true, show=true, background_colour=:black)
-    # velocity_arrow!.(particles)
-    xlims!(-10 * DIST, 10 * DIST)
-    ylims!(-10 * DIST, 10 * DIST)
+    p::Plots.Plot = scatter(xs, ys, legend=false, background_colour=:black)
+    xlims!(p, -10 * DIST, 10 * DIST)
+    ylims!(p, -10 * DIST, 10 * DIST)
     display(p)
     nothing
 end
@@ -107,7 +100,7 @@ function random_particle() :: Particle
 end
 
 function main()
-    N::Int = 100
+    N::Int = 20
     particles::Vector{Particle} = [random_particle() for i in 1:N]
     # m_1::Particle=Particle(M_EARTH*500, [-5 * DIST, 0], [0.1 * DIST, 0.3 * DIST], true)
     # m_2::Particle=Particle(M_EARTH*500, [5 * DIST, 0], [-0.1 * DIST, -0.3 * DIST], true)
@@ -117,7 +110,7 @@ function main()
     push!(particles, m_2)
 
     t::Float64 = 0
-    fps::Int = 30
+    fps::Int = 32
     dt::Float64 = 1/fps
 
     while true
