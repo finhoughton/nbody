@@ -38,8 +38,9 @@ let id::Int = 0
             id += 1
             new(id, mass, pos, v, zeros(Float64, 2), fixed)
         end
+        Particle(mass::Float64, pos::Vector{Float64}, fixed::Bool) = Particle(mass, pos, zeros(Float64, 2), fixed)
     end
-end
+end 
 
 function apply_force!(force::Vector{Float64}, particle::Particle)::Nothing
     particle.force_applied += force
@@ -48,7 +49,8 @@ end
 
 function force_pairwise!(j::Particle, i::Particle)::Nothing
     distance_inv::Float64 = 1/(norm(j.pos-i.pos) + EPS_SOFTENING)
-    f_ji::Vector{Float64} = normalize(j.pos - i.pos) * -G * j.mass * i.mass * distance_inv * distance_inv
+    # i and j swapped in the normalize function call because of the -1 in the formula
+    f_ji::Vector{Float64} = normalize(i.pos - j.pos) * G * j.mass * i.mass * distance_inv * distance_inv
     f_ij::Vector{Float64} = -f_ji
     apply_force!(f_ji, j)
     apply_force!(f_ij, i)
@@ -105,12 +107,15 @@ function random_particle() :: Particle
 end
 
 function main()
-    N::Int = 12
+    N::Int = 100
     particles::Vector{Particle} = [random_particle() for i in 1:N]
-    m_1::Particle=Particle(M_EARTH*50, [-5 * DIST, 0], zeros(Float64, 2), true)
-    m_2::Particle=Particle(M_EARTH*50, [5 * DIST, 0], zeros(Float64, 2), true)
+    # m_1::Particle=Particle(M_EARTH*500, [-5 * DIST, 0], [0.1 * DIST, 0.3 * DIST], true)
+    # m_2::Particle=Particle(M_EARTH*500, [5 * DIST, 0], [-0.1 * DIST, -0.3 * DIST], true)
+    m_1::Particle=Particle(M_EARTH*500, [-5 * DIST, 0], true)
+    m_2::Particle=Particle(M_EARTH*500, [5 * DIST, 0], true)
     push!(particles, m_1)
     push!(particles, m_2)
+
     t::Float64 = 0
     fps::Int = 30
     dt::Float64 = 1/fps
