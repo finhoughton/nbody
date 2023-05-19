@@ -38,9 +38,7 @@ let id::Int = 0
             id += 1
             new(id, mass, pos, v, zeros(Float64, 2), fixed)
         end
-        function Particle(mass::Float64, pos::Vector{Float64}, fixed::Bool)::Particle
-            Particle(mass, pos, zeros(Float64, 2), fixed)
-        end
+        Particle(mass::Float64, pos::Vector{Float64}, fixed::Bool)::Particle = Particle(mass, pos, zeros(Float64, 2), fixed)
     end
 end 
 
@@ -100,7 +98,7 @@ function random_particle() :: Particle
 end
 
 function main()
-    N::Int = 20
+    N::Int = 100
     particles::Vector{Particle} = [random_particle() for i in 1:N]
     # m_1::Particle=Particle(M_EARTH*500, [-5 * DIST, 0], [0.1 * DIST, 0.3 * DIST], true)
     # m_2::Particle=Particle(M_EARTH*500, [5 * DIST, 0], [-0.1 * DIST, -0.3 * DIST], true)
@@ -121,9 +119,6 @@ function main()
 
         step!(particles, dt)
         showparticles(particles)
-        # for particle in particles
-        #     println(round.(particle.v, digits=4))
-        # end
 
         timetaken = convert(Millisecond, now() - start)
         if (v = value(timetaken)) < dt * 1000
