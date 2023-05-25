@@ -30,7 +30,7 @@ let id::Int = 0
         function Particle(
             mass::Float64,
             pos::Vector{Float64},
-            v::Vector{Float64}=zeros(Float64, 2),
+            v::Vector{Float64}=zeros(Float64, 2);
             fixed::Bool=false
         )::Particle
             if size(pos, 1) != 2 && size(v, 1) != 2
@@ -43,7 +43,6 @@ let id::Int = 0
             id += 1
             new(id, mass, pos, v, zeros(Float64, 2), fixed)
         end
-        Particle(mass::Float64, pos::Vector{Float64}, fixed::Bool)::Particle = Particle(mass, pos, zeros(Float64, 2), fixed)
     end
 end
 
@@ -94,9 +93,7 @@ function showparticles(particles::Vector{Particle})::Nothing
     display(p)
     nothing
 end
-
-delete_offscreen_paticles!(particles::Vector{Particle})::Vector{Particle} = filter!(p -> maximum(p.pos) < EDGE, particles)
-
+ 
 function random_particle() :: Particle
     m::Float64 = M_EARTH * (rand() + 0.5)
     pos::Vector{Float64} = (rand(Float64, 2) * 2 - ones(2)) * DIST * 4
@@ -109,8 +106,8 @@ function main()
     particles::Vector{Particle} = [random_particle() for i in 1:N]
     # m_1::Particle=Particle(M_EARTH*500, [-5 * DIST, 0], [0.1 * DIST, 0.3 * DIST], true)
     # m_2::Particle=Particle(M_EARTH*500, [5 * DIST, 0], [-0.1 * DIST, -0.3 * DIST], true)
-    m_1::Particle=Particle(M_EARTH*500, [-5 * DIST, 0], true)
-    m_2::Particle=Particle(M_EARTH*500, [5 * DIST, 0], true)
+    m_1::Particle=Particle(M_EARTH*500, [-5 * DIST, 0], fixed=true)
+    m_2::Particle=Particle(M_EARTH*500, [5 * DIST, 0], fixed=true)
     push!(particles, m_1)
     push!(particles, m_2)
 
@@ -125,7 +122,7 @@ function main()
         end
 
         step!(particles, dt)
-        delete_offscreen_paticles!(particles)
+        filter!(p -> maximum(p.pos) < EDGE, particles) # delete offscreen particles
         showparticles(particles)
 
         timetaken = convert(Millisecond, now() - start)
