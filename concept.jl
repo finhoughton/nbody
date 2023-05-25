@@ -14,6 +14,11 @@ const G::Float64 = 30
 const EPS_SOFTENING::Float64 = 1e7
 # stop forcess becoming too big when objects are very close
 
+const EDGE::Float64 = 10 * DIST
+
+const X_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
+const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
+
 let id::Int = 0
     mutable struct Particle
         id::Int
@@ -40,7 +45,7 @@ let id::Int = 0
         end
         Particle(mass::Float64, pos::Vector{Float64}, fixed::Bool)::Particle = Particle(mass, pos, zeros(Float64, 2), fixed)
     end
-end 
+end
 
 function apply_force!(force::Vector{Float64}, particle::Particle)::Nothing
     particle.force_applied += force
@@ -84,11 +89,13 @@ function showparticles(particles::Vector{Particle})::Nothing
     xs::Vector{Float64} = getindex.(positions, 1)
     ys::Vector{Float64} = getindex.(positions, 2)
     p::Plots.Plot = scatter(xs, ys, legend=false, background_colour=:black)
-    xlims!(p, -10 * DIST, 10 * DIST)
-    ylims!(p, -10 * DIST, 10 * DIST)
+    xlims!(p, X_LIMITS...)
+    ylims!(p, Y_LIMITS...)
     display(p)
     nothing
 end
+
+delete_offscreen_paticles!(particles::Vector{Particle})::Vector{Particle} = filter!(p -> maximum(p.pos) < EDGE, particles)
 
 function random_particle() :: Particle
     m::Float64 = M_EARTH * (rand() + 0.5)
@@ -118,6 +125,7 @@ function main()
         end
 
         step!(particles, dt)
+        delete_offscreen_paticles!(particles)
         showparticles(particles)
 
         timetaken = convert(Millisecond, now() - start)
