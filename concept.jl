@@ -87,13 +87,13 @@ function showparticles(particles::Vector{Particle})::Nothing
 
     xs::Vector{Float64} = getindex.(positions, 1)
     ys::Vector{Float64} = getindex.(positions, 2)
-    p::Plots.Plot = scatter(xs, ys, legend=false, background_colour=:black)
+    p::Plots.Plot = scatter(xs, ys, legend=false, showaxis=false, background_colour=:black)
     xlims!(p, X_LIMITS...)
     ylims!(p, Y_LIMITS...)
     display(p)
     nothing
 end
- 
+
 function random_particle() :: Particle
     m::Float64 = M_EARTH * (rand() + 0.5)
     pos::Vector{Float64} = (rand(Float64, 2) * 2 - ones(2)) * DIST * 4
@@ -122,7 +122,7 @@ function main()
         end
 
         step!(particles, dt)
-        filter!(p -> maximum(p.pos) < EDGE, particles) # delete offscreen particles
+        filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
         showparticles(particles)
 
         timetaken = convert(Millisecond, now() - start)
