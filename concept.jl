@@ -53,6 +53,7 @@ end
 
 function force_pairwise!(j::Particle, i::Particle)::Nothing
     distance_inv::Float64 = 1/(norm(j.pos-i.pos) + EPS_SOFTENING)
+
     # i and j swapped in the normalize function call because of the -1 in the formula
     f_ji::Vector{Float64} = normalize(i.pos - j.pos) * G * j.mass * i.mass * distance_inv * distance_inv
     f_ij::Vector{Float64} = -f_ji
