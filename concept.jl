@@ -33,7 +33,7 @@ let id::Int = 0
             v::Vector{Float64}=zeros(Float64, 2);
             fixed::Bool=false
         )::Particle
-            if size(pos, 1) != 2 && size(v, 1) != 2
+            if size(pos, 1) != 2 || size(v, 1) != 2
                 error("Particle only supports 2D positions and velocity")
             elseif mass <= 0
                 error("particle mass must be positive")
