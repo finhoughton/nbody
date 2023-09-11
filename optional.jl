@@ -4,31 +4,28 @@ struct Maybe{T}
 end
 
 """
-    conditional_to_maybe(default::T, f, value::T)::Maybe{T} where {T}
+    conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
 
-Takes a `default` value, a function, and a value.
 if the function applied to the values returns `True`,
 a `Maybe` value containing the value is returned, otherwise a `Maybe` value containing the defualt is returned
 """
-function conditional_to_maybe(default::T, f, value::T)::Maybe{T} where {T}
-    f(value) ? Maybe(value) : Maybe(default)
+function conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
+    func(value) ? Maybe(value) : Maybe(default)
 end
 
 """
-    from_maybe_with(default::B, f, value::Maybe{T})::B where {T}
+    from_maybe_with(default::B, func, value::Maybe{T})::B where {T}
 
-Takes a `default` value, a function, and a `Maybe` value.
 If the `Maybe` value is `nothing`, the function returns the `default` value. 
 Otherwise, it applies the function to the value inside the `Maybe` and returns the reTsult.
 """
-function from_maybe_with(default::A, f, value::Maybe{T})::A where {T, A}
-    is_nothing(value) ? default : f(value._v)
+function from_maybe_with(default::A, func, value::Maybe{T})::A where {T, A}
+    is_nothing(value) ? default : func(value._v)
 end
 
 """
     from_maybe(default::T, value::Maybe{T})::T where {T}
 
-Takes a `default` value and a `Maybe` value.
 If the Maybe is `nothing`, it returns the `default` value; otherwise, it returns the value contained in the `Maybe`.
 """
 function from_maybe(default::T, value::Maybe{T})::T where {T}
@@ -38,7 +35,7 @@ end
 """
     unsafe_from_maybe(value::Maybe{T})::T where {T}
 
-Takes a `Maybe` value and attempts to extract its value.
+Attempts to extract the value from a `Maybe`.
 if it is `nothing`, an error is raised, otherwise the value is returned.
 """
 function unsafe_from_maybe(value::Maybe{T})::T where {T}
@@ -57,17 +54,17 @@ end
 """
     is_nothing(value::Maybe{T})::Bool where {T}
 
-if a `Maybe` value is nothing
+if a `Maybe` value is `nothing`
 """
 function is_nothing(value::Maybe{T})::Bool where {T}
     value._v ≡ nothing
 end
 
 """
-    maybe_map(f, value::Maybe{T})::Maybe{S} where {T, S}
+    maybe_map(func, value::Maybe{T})::Maybe{S} where {T, S}
 
-
+Apply a function under a `Maybe` value, if the value is nothing, it is unchanged.
 """
-function maybe_map(f, value::Maybe{T})::Maybe{S} where {T, S}
-    (Maybe ∘ from_maybe_with)(nothing, f, value)
+function maybe_map(func, value::Maybe{T})::Maybe{S} where {T, S}
+    (Maybe ∘ from_maybe_with)(nothing, func, value)
 end
