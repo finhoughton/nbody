@@ -4,16 +4,6 @@ struct Maybe{T}
 end
 
 """
-    conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
-
-if the function applied to the values returns `True`,
-a `Maybe` value containing the value is returned, otherwise a `Maybe` value containing the defualt is returned
-"""
-function conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
-    func(value) ? Maybe(value) : Maybe(default)
-end
-
-"""
     from_maybe_with(default::B, func, value::Maybe{T})::B where {T}
 
 If the `Maybe` value is `nothing`, the function returns the `default` value. 
@@ -33,6 +23,16 @@ function from_maybe(default::T, value::Maybe{T})::T where {T}
 end
 
 """
+    conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
+
+if the function applied to the values returns `True`,
+a `Maybe` value containing the value is returned, otherwise a `Maybe` value containing the defualt is returned
+"""
+function conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
+    func(value) ? Maybe(value) : Maybe(default)
+end
+
+"""
     unsafe_from_maybe(value::Maybe{T})::T where {T}
 
 Attempts to extract the value from a `Maybe`.
@@ -40,6 +40,17 @@ if it is `nothing`, an error is raised, otherwise the value is returned.
 """
 function unsafe_from_maybe(value::Maybe{T})::T where {T}
     is_nothing(o) ? error("unsafe_from_maybe recieved nothing value") : value._v
+end
+
+"""
+    if_maybe_then(default, func, value::Maybe{T})
+
+if the value is `nothing`, call the defualt function and return the result.
+Otherwise, extract the value from the `Maybe`, pass it to `func`, and return the result.
+"""
+
+function if_maybe_then(default, func, value::Maybe{T}) where {T}
+    is_nothing(value) ? default() : func(value._v)
 end
 
 """
