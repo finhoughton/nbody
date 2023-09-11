@@ -1,29 +1,64 @@
 
-struct Maybe{A}
-    value::Union{A, Nothing}
+struct Maybe{T}
+    _v::Union{T, Nothing}
 end
 
-function to_maybe(f, default::A, value::A)::Maybe{A}
-    f(value) ? Maybe(value) : default
+"""
+    conditional_to_maybe(default::T, f, value::T)::Maybe{T} where {T}
+
+Takes a `default` value, a function, and a value.
+if the function applied to the values returns `True`,
+a `Maybe` value containing the value is returned, otherwise a `Maybe` value containing the defualt is returned
+"""
+function conditional_to_maybe(default::T, f, value::T)::Maybe{T} where {T}
+    f(value) ? Maybe(value) : Maybe(default)
 end
 
-function maybe(f, default::B, o::Maybe{A})::B
-    is_nothing(o) ? default : f(o.value)
+"""
+    maybe(default::B, f, value::Maybe{T})::B where {T}
+
+Takes a `default` value, a function, and a `Maybe` value.
+If the `Maybe` value is `nothing`, the function returns the `default` value. 
+Otherwise, it applies the function to the value inside the `Maybe` and returns the reTsult.
+"""
+function maybe(default::A, f, value::Maybe{T})::A where {T, A}
+    is_nothing(value) ? default : f(value._v)
 end
 
-function from_maybe( default::A, o::Maybe{A})::A
-    maybe(identity, default, o)
+"""
+    from_maybe(default::T, value::Maybe{T})::T where {T}
+
+Takes a `default` value and a `Maybe` value.
+If the Maybe is `nothing`, it returns the `default` value; otherwise, it returns the value contained in the `Maybe`.
+"""
+function from_maybe(default::T, value::Maybe{T})::T where {T}
+    maybe(default, identity, value)
 end
 
-function unsafe_from_maybe(o::Maybe{A})::A
-    is_nothing(o) ? error("unsafe_from_maybe recieved nothing value") : o.value
+"""
+    unsafe_from_maybe(value::Maybe{T})::T where {T}
+
+Takes a `Maybe` value and attempts to extract its value.
+if it is `nothing`, an error is raised, otherwise the value is returned.
+"""
+function unsafe_from_maybe(value::Maybe{T})::T where {T}
+    is_nothing(o) ? error("unsafe_from_maybe recieved nothing value") : value._v
 end
 
-function has_value(o::Maybe{A})::Bool
-    o.value !== nothing
+"""
+    is_something(value::Maybe{T})::Bool where {T}
+
+if a `Maybe` value contains a value
+"""
+function is_something(value::Maybe{T})::Bool where {T}
+    value._v !== nothing
 end
 
-function is_nothing(o::Maybe(A))::Bool
-    o.value === nothing
-end
+"""
+    is_nothing(value::Maybe(T))::Bool where {T}
 
+if a `Maybe` value is nothing
+"""
+function is_nothing(value::Maybe{T})::Bool where {T}
+    value._v === nothing
+end
