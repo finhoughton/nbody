@@ -5,6 +5,10 @@ end
 
 const EmptyMaybe = Maybe(nothing)
 
+function ==(a::Maybe{T}, b::Maybe{T})::Bool
+    a._v == b._v
+end
+
 """
     from_maybe_with(default::B, func, value::Maybe{T})::B where {T}
 
@@ -74,10 +78,10 @@ function is_nothing(value::Maybe{T})::Bool where {T}
 end
 
 """
-    maybe_map(func, value::Maybe{T})::Maybe{S} where {T, S}
+    maybe_apply(func, vs... )::Maybe{T}
 
-Apply a function under a `Maybe` value, if the value is nothing, it is unchanged.
+apply a function under any number `Maybe` values, if any of the values are `nothing`, return nothing.
 """
-function maybe_map(func, value::Maybe{T})::Maybe{T} where {T}
-    (Maybe ∘ from_maybe_with)(nothing, func, value)
+function binary_apply(func, vs...)::Maybe{T}
+    any((is_nothing(v) for v in vs)) ? EmptyMaybe : Maybe(func((v._v for v in vs)...))
 end

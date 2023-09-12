@@ -69,7 +69,7 @@ struct BHTree
         ses::Vector{Particle} = []
         quads = (nws, nes, sws, ses)
 
-        sizehint!.(quads, 1 + len ÷ 4)
+        sizehint!.(quads, 3 + (len >> 2))
 
         if length(particles) ≠ 1
             for particle in particles
