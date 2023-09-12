@@ -46,6 +46,7 @@ struct BHTree
     SE::Maybe{BHTree}
     centre_of_mass::Maybe{Vector{Float64}}
     side_length::Float64
+
     function BHTree(
         particles::Vector{Particle},
         c::Point,
@@ -75,27 +76,29 @@ struct BHTree
         end
 
         centre_of_mass::Point = sum(p -> p.pos, particles) / length(particles)
-        half_side_len::Float64 = side_length / 2
-        quarter_side_len::Float64 = half_side_len / 2
+        half_side_len::Float64 = 0.5 * side_length
+        quarter_side_len::Float64 = 0.5 * half_side_len 
 
-        approx_size = length(particles) ÷ 4
         nws::Vector{Particle} = []
         nes::Vector{Particle} = []
         sws::Vector{Particle} = []
         ses::Vector{Particle} = []
         quads = (nws, nes, sws, ses)
-        sizehint!.(quads, approx_size)
+
+        sizehint!.(quads, 1 + length(particles) ÷ 4)
+
         if length(particles) ≠ 1
             for particle in particles
                 push_to_vector!(quads..., particle)
             end
         end
+
         centres = (
             centre + Point(-quarter_side_len, quarter_side_len),
             centre + Point(quarter_side_len, quarter_side_len), 
             centre + Point(-quarter_side_len, -quarter_side_len),
-            centre + Point(quarter_side_len, -quarter_side_len),
-            )
+            centre + Point(quarter_side_len, -quarter_side_len))
+
         subtrees = [Maybe(BHTree(quad, quad_centre, half_side_len)) for (quad, quad_centre) in zip(quads, centres)]
         new(particles, subtrees..., centre_of_mass, side_length)
     end
