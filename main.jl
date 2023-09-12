@@ -1,3 +1,4 @@
+using Match
 
 include("maybe.jl")
 
@@ -56,28 +57,46 @@ struct BHTree
         centre::Point,
         side_length::Float64
     )::Maybe{BHTree}
+
         if isempty(particles)
             return Maybe{nothing}
         end
 
-        centre_of_mass::Point = sum(map(p -> p.pos, particles)) / length(particles)
+        function push_to_vector!(
+            nws::Vector{Particle},
+            nes::Vector{Particle},
+            sws::Vector{Particle},
+            ses::Vector{Particle},
+            particle::Particle
+            )::Nothing
+            @match (compare(particle, centre)) begin
+                (1, 1)   => push!(nws, particle)
+                (-1, 1)  => push!(nes, particle)
+                (1, -1)  => push!(sws, particle)
+                _        => push!(ses, particle)
+            end
+            nothing
+        end
+
+        centre_of_mass::Point = sum(p -> p.pos, particles) / length(particles)
         half_side_len::Float64 = side_length / 2
         quarter_side_len::Float64 = half_side_len / 2
-
+        
+        nws::Vector{Particle} = []
+        nes::Vector{Particle} = []
+        sws::Vector{Particle} = []
+        ses::Vector{Particle} = []
         if length(particles) ≠ 1
-            nws::Vector{Particle} = filter(x -> compare(x, centre) == (1, 1), particles)
-            nes::Vector{Particle} = filter(x -> compare(x, centre) == (-1, 1), particles)
-            sws::Vector{Particle} = filter(x -> compare(x, centre) == (1, -1), particles)
-            ses::Vector{Particle} = filter(x -> compare(x, centre) == (-1, -1), particles)
-        else
-            nws = nes = sws = ses = []
+            for particle in particles
+                push_to_vector!(nws, nes, sws, ses, particle)
+            end
         end
-        NW::BHTree = BHTree(nws, (centre + Point(-quarter_side_len, quarter_side_len)), half_side_len)
-        NE::BHTree = BHTree(nes, (centre + Point(quarter_side_len, quarter_side_len)), half_side_len)
-        SW::BHTree = BHTree(sws, (centre + Point(-quarter_side_len, -quarter_side_len)), half_side_len)
-        SE::BHTree = BHTree(ses, (centre + Point(quarter_side_len, -quarter_side_len)), half_side_len)
 
-        self::BHTree = new(particles, NW, NE, SW, SE, centre_of_mass, side_length)
-        return Maybe(self)
+        NW::BHTree = Maybe(BHTree(nws, (centre + Point(-quarter_side_len, quarter_side_len)), half_side_len))
+        NE::BHTree = Maybe(BHTree(nes, (centre + Point(quarter_side_len, quarter_side_len)), half_side_len))
+        SW::BHTree = Maybe(BHTree(sws, (centre + Point(-quarter_side_len, -quarter_side_len)), half_side_len))
+        SE::BHTree = Maybe(BHTree(ses, (centre + Point(quarter_side_len, -quarter_side_len)), half_side_len))
+
+        new(particles, NW, NE, SW, SE, centre_of_mass, side_length)
     end
 end
