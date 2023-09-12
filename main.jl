@@ -11,12 +11,6 @@ function +(a::Point, b::Point)::Point
     Point(a.x + b.x, a.y + b.y) 
 end
 
-function compare(a::Point, b::Point)::(Int, Int)
-    cmp_x = a.x > b.x ? 1 : -1
-    cmp_y = a.y > b.y ? 1 : -1
-    (cmp_x, cmp_y)
-end
-
 let id::Int = 0
     mutable struct Particle
         id::Int
@@ -54,7 +48,7 @@ struct BHTree
     side_length::Float64
     function BHTree(
         particles::Vector{Particle},
-        centre::Point,
+        c::Point,
         side_length::Float64
     )::Maybe{BHTree}
 
@@ -67,25 +61,33 @@ struct BHTree
             nes::Vector{Particle},
             sws::Vector{Particle},
             ses::Vector{Particle},
-            particle::Particle
-            )::Nothing
-            @match (compare(particle, centre)) begin
-                (1, 1)   => push!(nws, particle)
-                (-1, 1)  => push!(nes, particle)
-                (1, -1)  => push!(sws, particle)
-                _        => push!(ses, particle)
+            p::Particle
+        )::Nothing
+            if (p.x >= c.x && p.y >= c.y)
+                push!(nws, particle)
+            elseif (p.x < c.x && p.y >= c.y)
+                push!(nes, particle)
+            elseif (p.x >= c.x && p.y < c.y)
+                push!(sws, particle)
+            elseif (p.x < c.x && p.y < c.y) 
+                push!(ses, particle)
             end
-            nothing
         end
 
         centre_of_mass::Point = sum(p -> p.pos, particles) / length(particles)
         half_side_len::Float64 = side_length / 2
         quarter_side_len::Float64 = half_side_len / 2
-        
+
+        approx_size = length(particles) ÷ 4
         nws::Vector{Particle} = []
         nes::Vector{Particle} = []
         sws::Vector{Particle} = []
         ses::Vector{Particle} = []
+        sizehint!(nws, approx_size)
+        sizehint!(nes, approx_size)
+        sizehint!(sws, approx_size)
+        sizehint!(ses, approx_size)
+
         if length(particles) ≠ 1
             for particle in particles
                 push_to_vector!(nws, nes, sws, ses, particle)
