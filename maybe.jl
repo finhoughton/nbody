@@ -7,7 +7,7 @@ end
     from_maybe_with(default::B, func, value::Maybe{T})::B where {T}
 
 If the `Maybe` value is `nothing`, the function returns the `default` value. 
-Otherwise, it applies the function to the value inside the `Maybe` and returns the reTsult.
+Otherwise, it applies the function to the value inside the `Maybe` and returns the result.
 """
 function from_maybe_with(default::A, func, value::Maybe{T})::A where {T, A}
     is_nothing(value) ? default : func(value._v)
@@ -76,6 +76,6 @@ end
 
 Apply a function under a `Maybe` value, if the value is nothing, it is unchanged.
 """
-function maybe_map(func, value::Maybe{T})::Maybe{S} where {T, S}
+function maybe_map(func, value::Maybe{T})::Maybe{T} where {T}
     (Maybe ∘ from_maybe_with)(nothing, func, value)
 end

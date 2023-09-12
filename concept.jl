@@ -50,7 +50,7 @@ function apply_force!(force::Vector{Float64}, particle::Particle)::Nothing
     particle.force_applied += force
     nothing
 end
-
+ 
 function force_pairwise!(j::Particle, i::Particle)::Nothing
     distance_inv::Float64 = 1/(norm(j.pos-i.pos) + EPS_SOFTENING)
 
