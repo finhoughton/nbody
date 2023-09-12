@@ -55,7 +55,7 @@ struct BHTree
         
         len = length(particles)
 
-        if isempty(particles)
+        if len == 0
             return EmptyMaybe
         end
 
