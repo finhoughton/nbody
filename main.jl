@@ -49,30 +49,12 @@ struct BHTree
 
     function BHTree(
         particles::Vector{Particle},
-        c::Point,
+        centre::Point,
         side_length::Float64
     )::Maybe{BHTree}
 
         if isempty(particles)
             return Maybe{nothing}
-        end
-
-        function push_to_vector!(
-            nws::Vector{Particle},
-            nes::Vector{Particle},
-            sws::Vector{Particle},
-            ses::Vector{Particle},
-            p::Particle
-        )::Nothing
-            if (p.x >= c.x && p.y >= c.y)
-                push!(nws, particle)
-            elseif (p.x < c.x && p.y >= c.y)
-                push!(nes, particle)
-            elseif (p.x >= c.x && p.y < c.y)
-                push!(sws, particle)
-            elseif (p.x < c.x && p.y < c.y) 
-                push!(ses, particle)
-            end
         end
 
         centre_of_mass::Point = sum(p -> p.pos, particles) / length(particles)
@@ -89,7 +71,7 @@ struct BHTree
 
         if length(particles) ≠ 1
             for particle in particles
-                push_to_vector!(quads..., particle)
+                push_to_vector!(quads..., particle, centre)
             end
         end
 
@@ -101,5 +83,24 @@ struct BHTree
 
         subtrees = [Maybe(BHTree(quad, quad_centre, half_side_len)) for (quad, quad_centre) in zip(quads, centres)]
         new(particles, subtrees..., centre_of_mass, side_length)
+    end
+end
+
+function push_to_vector!(
+    nws::Vector{Particle},
+    nes::Vector{Particle},
+    sws::Vector{Particle},
+    ses::Vector{Particle},
+    p::Particle,
+    c::Particle
+)::Nothing
+    if (p.x >= c.x && p.y >= c.y)
+        push!(nws, particle)
+    elseif (p.x < c.x && p.y >= c.y)
+        push!(nes, particle)
+    elseif (p.x >= c.x && p.y < c.y)
+        push!(sws, particle)
+    elseif (p.x < c.x && p.y < c.y) 
+        push!(ses, particle)
     end
 end
