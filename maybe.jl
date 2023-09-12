@@ -3,6 +3,8 @@ struct Maybe{T}
     _v::Union{T, Nothing}
 end
 
+const EmptyMaybe = Maybe(nothing)
+
 """
     from_maybe_with(default::B, func, value::Maybe{T})::B where {T}
 

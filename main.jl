@@ -52,12 +52,14 @@ struct BHTree
         centre::Point,
         side_length::Float64
     )::Maybe{BHTree}
+        
+        len = length(particles)
 
         if isempty(particles)
-            return Maybe{nothing}
+            return EmptyMaybe
         end
 
-        centre_of_mass::Point = sum(p -> p.pos, particles) / length(particles)
+        centre_of_mass::Point = sum(p -> p.pos, particles) / len
         half_side_len::Float64 = 0.5 * side_length
         quarter_side_len::Float64 = 0.5 * half_side_len 
 
@@ -67,7 +69,7 @@ struct BHTree
         ses::Vector{Particle} = []
         quads = (nws, nes, sws, ses)
 
-        sizehint!.(quads, 1 + length(particles) ÷ 4)
+        sizehint!.(quads, 1 + len ÷ 4)
 
         if length(particles) ≠ 1
             for particle in particles
