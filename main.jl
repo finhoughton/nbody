@@ -83,22 +83,20 @@ struct BHTree
         nes::Vector{Particle} = []
         sws::Vector{Particle} = []
         ses::Vector{Particle} = []
-        sizehint!(nws, approx_size)
-        sizehint!(nes, approx_size)
-        sizehint!(sws, approx_size)
-        sizehint!(ses, approx_size)
-
+        quads = (nws, nes, sws, ses)
+        sizehint!.(quads, approx_size)
         if length(particles) ≠ 1
             for particle in particles
-                push_to_vector!(nws, nes, sws, ses, particle)
+                push_to_vector!(quads..., particle)
             end
         end
-
-        NW::BHTree = Maybe(BHTree(nws, (centre + Point(-quarter_side_len, quarter_side_len)), half_side_len))
-        NE::BHTree = Maybe(BHTree(nes, (centre + Point(quarter_side_len, quarter_side_len)), half_side_len))
-        SW::BHTree = Maybe(BHTree(sws, (centre + Point(-quarter_side_len, -quarter_side_len)), half_side_len))
-        SE::BHTree = Maybe(BHTree(ses, (centre + Point(quarter_side_len, -quarter_side_len)), half_side_len))
-
-        new(particles, NW, NE, SW, SE, centre_of_mass, side_length)
+        centres = (
+            centre + Point(-quarter_side_len, quarter_side_len),
+            centre + Point(quarter_side_len, quarter_side_len), 
+            centre + Point(-quarter_side_len, -quarter_side_len),
+            centre + Point(quarter_side_len, -quarter_side_len),
+            )
+        subtrees = [Maybe(BHTree(quad, quad_centre, half_side_len)) for (quad, quad_centre) in zip(quads, centres)]
+        new(particles, subtrees..., centre_of_mass, side_length)
     end
 end
