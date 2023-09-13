@@ -1,7 +1,7 @@
 using Match
 using LinearAlgebra
 
-include("maybe.jl")
+include("utils/maybe.jl")
 
 struct Point
     x::Float64
