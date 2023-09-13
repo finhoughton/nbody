@@ -12,30 +12,29 @@ function +(a::Point, b::Point)::Point
     Point(a.x + b.x, a.y + b.y) 
 end
 
-let id::Int = 0
-    mutable struct Particle
-        id::Int
-        mass::Float64
-        pos::Point
-        v::Vector{Float64}
-        force_applied::Vector{Float64}
-        fixed::Bool
-        function Particle(
-            mass::Float64,
-            pos::Point,
-            v::Vector{Float64}=zeros(Float64, 2);
-            fixed::Bool=false
-        )::Particle
-            if size(v, 1) != 2
-                error("Particle only supports 2D positions and velocity")
-            elseif mass <= 0
-                error("particle mass must be positive")
-            elseif fixed && norm(v) != 0
-                error("fixed is incomaptable with velocity.")
-            end
-            id += 1
-            new(id, mass, pos, v, zeros(Float64, 2), fixed)
+
+mutable struct Particle
+    id::Int
+    mass::Float64
+    pos::Point
+    v::Vector{Float64}
+    force_applied::Vector{Float64}
+    fixed::Bool
+    function Particle(
+        id::Int,
+        mass::Float64,
+        pos::Point,
+        v::Vector{Float64}=zeros(Float64, 2); 
+        fixed::Bool=false
+    )::Particle
+        if size(v, 1) != 2
+            error("Particle only supports 2D positions and velocity")
+        elseif mass <= 0
+            error("particle mass must be positive")
+        elseif fixed && norm(v) != 0
+            error("fixed is incomaptable with velocity.")
         end
+        new(id, mass, pos, v, zeros(Float64, 2), fixed)
     end
 end
 
@@ -57,7 +56,7 @@ struct BHTree
         len = length(particles)
 
         if len == 0
-            return EmptyMaybe
+            return nothing
         end
 
         centre_of_mass::Point = sum(p -> p.pos, particles) / len
