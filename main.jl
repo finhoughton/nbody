@@ -97,12 +97,12 @@ function push_to_vector!(
     c::Particle
 )::Nothing
     if (p.x >= c.x && p.y >= c.y)
-        push!(nws, particle)
+        push!(nws, p)
     elseif (p.x < c.x && p.y >= c.y)
-        push!(nes, particle)
+        push!(nes, p)
     elseif (p.x >= c.x && p.y < c.y)
-        push!(sws, particle)
+        push!(sws, p)
     elseif (p.x < c.x && p.y < c.y) 
-        push!(ses, particle)
+        push!(ses, p)
     end
 end

@@ -1,11 +1,15 @@
 
-struct Maybe{T}
-    _v::Union{T, Nothing}
+struct Just{T}
+    _v::T
 end
 
-const EmptyMaybe = Maybe(nothing)
+Maybe{T} = Union{Just{T}, Nothing}
 
-function ==(a::Maybe{T}, b::Maybe{T})::Bool
+function ==(a::Just{T}, b::Just{T})::Bool where {T}
+    a._v == b._v
+end
+
+function ==(a::Maybe{T}, b::Maybe{T})::Bool where {T}
     a._v == b._v
 end
 
@@ -29,43 +33,33 @@ function from_maybe(default::T, value::Maybe{T})::T where {T}
 end
 
 """
-    conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
-
-if the function applied to the values returns `True`,
-a `Maybe` value containing the value is returned, otherwise a `Maybe` value containing the defualt is returned
-"""
-function conditional_to_maybe(default::T, func, value::T)::Maybe{T} where {T}
-    func(value) ? Maybe(value) : Maybe(default)
-end
-
-"""
-    unsafe_from_maybe(value::Maybe{T})::T where {T}
+    unsafe_from_just(value::Maybe{T})::T where {T}
 
 Attempts to extract the value from a `Maybe`.
 if it is `nothing`, an error is raised, otherwise the value is returned.
 """
-function unsafe_from_maybe(value::Maybe{T})::T where {T}
-    is_nothing(o) ? error("unsafe_from_maybe recieved nothing value") : value._v
+function unsafe_from_just(value::Maybe{T})::T where {T}
+    is_nothing(value) ? error("unsafe_from_just recieved nothing value") : value._v
 end
 
 """
-    if_maybe_then(default, func, value::Maybe{T})
+    if_just_then(default, func, value::Maybe{T})
 
 if the value is `nothing`, call the defualt function and return the result.
 Otherwise, extract the value from the `Maybe`, pass it to `func`, and return the result.
 """
 
-function if_maybe_then(default, func, value::Maybe{T}) where {T}
+function if_just_then(default, func, value::Maybe{T}) where {T}
     is_nothing(value) ? default() : func(value._v)
 end
 
 """
     is_something(value::Maybe{T})::Bool where {T}
 
-if a `Maybe` value contains a value
+if a `Maybe` value contains a value, equivalent to `!is_nothing(value)`
 """
 function is_something(value::Maybe{T})::Bool where {T}
-    value._v ≢ nothing
+    value ≢ nothing
 end
 
 """
@@ -74,14 +68,33 @@ end
 if a `Maybe` value is `nothing`
 """
 function is_nothing(value::Maybe{T})::Bool where {T}
-    value._v ≡ nothing
+    value ≡ nothing
 end
 
 """
-    maybe_apply(func, vs... )::Maybe{T}
+    lift(func::(A -> B -> ... -> Z))::(Maybe{A} -> Maybe{B} -> ... -> Maybe{Z})
 
-apply a function under any number `Maybe` values, if any of the values are `nothing`, return nothing.
+lift a function to be applicable to `Maybe` values. If any of the input values are `nothing`, `nothing` is returned.
+
+# examples
+```julia-repl
+julia> maybe_add = lift(+)
+(::var"#lifted#3"{typeof(+)}) (generic function with 1 method)
+julia> a = maybe_add(Maybe(10), Maybe(4), Maybe(100))
+Maybe{Int64}(114)
+julia> unsafe_from_maybe(a)
+114
+
+
+julia> b = maybe_add(Maybe(10), Maybe(4), Maybe(100), EmptyMaybe)
+Maybe{Nothing}(nothing)
+```
+
 """
-function binary_apply(func, vs...)::Maybe{T}
-    any((is_nothing(v) for v in vs)) ? EmptyMaybe : Maybe(func((v._v for v in vs)...))
+function lift(func)
+    function lifted(vs...)::Maybe{T} where T
+        any((is_nothing(v) for v in vs)) ? nothing : Maybe(func((v._v for v in vs)...))
+    end
 end
+
+nothing
