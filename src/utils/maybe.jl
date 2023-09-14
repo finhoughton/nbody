@@ -8,7 +8,7 @@ Maybe{T} = Union{Just{T}, Nothing}
 function Base.:(==)(a::Just{T}, b::Just{T})::Bool where {T}
     a.__v == b.__v
 end
-
+ 
 """
     from_maybe_with(default::B, func, value::Maybe{T})::B where {T}
 
@@ -16,7 +16,7 @@ If the `Maybe` value is `nothing`, the function returns the `default` value.
 Otherwise, it applies the function to the value inside the `Maybe` and returns the result.
 """
 function from_maybe_with(default::A, func, value::Maybe{T})::A where {T, A}
-    is_nothing(value) ? default : func(value._v)
+    is_nothing(value) ? default : func(value.__v)
 end
 
 """
@@ -65,7 +65,7 @@ if a `Maybe` value is `nothing`
 """
 function is_nothing(value::Maybe{T})::Bool where {T}
     value ≡ nothing
-end
+end 
 
 """
     lift(func::(A -> B -> ... -> Z))::(Maybe{A} -> Maybe{B} -> ... -> Maybe{Z})
@@ -89,5 +89,5 @@ function lift(func)
         any((is_nothing(v) for v in vs)) ? nothing : Just(func((v.__v for v in vs)...))
     end
 end
-
+ 
 nothing
