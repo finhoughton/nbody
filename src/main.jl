@@ -3,25 +3,45 @@ using LinearAlgebra
 
 include("utils/maybe.jl")
 
+const M_EARTH::Float64 = 6e22
+
+const DIST::Float64 = 1e9
+
+# const G::Float64 = 6.674e-11
+const G::Float64 = 30
+
+const EPS_SOFTENING::Float64 = 1e7
+# stop forcess becoming too big when objects are very close
+
+const EDGE::Float64 = 10 * DIST
+
+const X_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
+const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
+
 struct Point
     x::Float64
     y::Float64
 end
 
-function +(a::Point, b::Point)::Point
+function Base.:+(a::Point, b::Point)::Point
     Point(a.x + b.x, a.y + b.y) 
 end
 
+function Base.:-(a::Point, b::Point)::Point
+    Point(a.x - b.x, a.y - b.y)
+end
+
+function Base.:*(a::Point, b::Real)::Point
+    Point(a.x * b, a.y * b)
+end
 
 mutable struct Particle
-    id::Int
     mass::Float64
     pos::Point
     v::Vector{Float64}
     force_applied::Vector{Float64}
     fixed::Bool
     function Particle(
-        id::Int,
         mass::Float64,
         pos::Point,
         v::Vector{Float64}=zeros(Float64, 2); 
@@ -34,8 +54,20 @@ mutable struct Particle
         elseif fixed && norm(v) != 0
             error("fixed is incomaptable with velocity.")
         end
-        new(id, mass, pos, v, zeros(Float64, 2), fixed)
+        new(mass, pos, v, zeros(Float64, 2), fixed)
     end
+end
+
+function calculate_centre_of_mass(ps::Vector{Particle})::Point
+    total_mass::Float64 = 0
+    total_x::Float64 = 0
+    total_y::Float64 = 0
+    for p ∈ ps
+        total_mass += p.mass
+        total_x += p.x
+        total_y += p.y
+    end
+    Point(total_x / total_mass, total_y / total_mass)
 end
 
 struct BHTree
@@ -59,7 +91,7 @@ struct BHTree
             return nothing
         end
 
-        centre_of_mass::Point = sum(p -> p.pos, particles) / len
+        centre_of_mass::Point = calculate_centre_of_mass(particles)
         half_side_len::Float64 = 0.5 * side_length
         quarter_side_len::Float64 = 0.5 * half_side_len 
 
@@ -72,7 +104,7 @@ struct BHTree
         sizehint!.(quads, 3 + (0.25 * len))
 
         if length(particles) ≠ 1
-            for particle in particles
+            for particle ∈ particles
                 push_to_vector!(quads..., particle, centre)
             end
         end
@@ -106,3 +138,16 @@ function push_to_vector!(
         push!(ses, p)
     end
 end
+
+function random_particle() :: Particle
+    m::Float64 = M_EARTH * (rand() + 0.5)
+    pos::Point = Point(rand() - 0.5, rand() - 0.5) * DIST * 4
+    v::Vector{Float64} = (rand(Float64, 2) * 2 - ones(2)) * DIST * 0.5
+    Particle(m, pos, v)
+end
+
+function main()::Nothing
+    particles::Vector{Particle} = [random_particle() for _ ∈ 1:1000]
+    nothing
+end
+main()
