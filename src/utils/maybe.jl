@@ -5,7 +5,7 @@ end
 
 Maybe{T} = Union{Just{T}, Nothing}
 
-function ==(a::Just{T}, b::Just{T})::Bool where {T}
+function Base.:(==)(a::Just{T}, b::Just{T})::Bool where {T}
     a.__v == b.__v
 end
 
