@@ -64,8 +64,8 @@ function calculate_centre_of_mass(ps::Vector{Particle})::Point
     total_y::Float64 = 0
     for p ∈ ps
         total_mass += p.mass
-        total_x += p.x
-        total_y += p.y
+        total_x += p.pos.x
+        total_y += p.pos.y
     end
     Point(total_x / total_mass, total_y / total_mass)
 end
@@ -76,7 +76,7 @@ struct BHTree
     NE::Maybe{BHTree}
     SW::Maybe{BHTree}
     SE::Maybe{BHTree}
-    centre_of_mass::Maybe{Vector{Float64}}
+    centre_of_mass::Point
     side_length::Float64
 
     function BHTree(
@@ -101,7 +101,7 @@ struct BHTree
         ses::Vector{Particle} = []
         quads = (nws, nes, sws, ses)
 
-        sizehint!.(quads, 3 + (0.25 * len))
+        sizehint!.(quads, 3 + (len >> 2))
 
         if length(particles) ≠ 1
             for particle ∈ particles
@@ -115,8 +115,8 @@ struct BHTree
             centre + Point(-quarter_side_len, -quarter_side_len),
             centre + Point(quarter_side_len, -quarter_side_len))
 
-        subtrees = [Just(BHTree(quad, quad_centre, half_side_len)) for (quad, quad_centre) in zip(quads, centres)]
-        new(particles, subtrees..., centre_of_mass, side_length)
+        children = [BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) in zip(quads, centres)]
+        Just(new(particles, children..., centre_of_mass, side_length))
     end
 end
 
@@ -126,17 +126,18 @@ function push_to_vector!(
     sws::Vector{Particle},
     ses::Vector{Particle},
     p::Particle,
-    c::Particle
+    c::Point
 )::Nothing
-    if (p.x >= c.x && p.y >= c.y)
+    if (p.pos.x >= c.x && p.pos.y >= c.y)
         push!(nws, p)
-    elseif (p.x < c.x && p.y >= c.y)
+    elseif (p.pos.x < c.x && p.pos.y >= c.y)
         push!(nes, p)
-    elseif (p.x >= c.x && p.y < c.y)
+    elseif (p.pos.x >= c.x && p.pos.y < c.y)
         push!(sws, p)
-    elseif (p.x < c.x && p.y < c.y) 
+    elseif (p.pos.x < c.x && p.pos.y < c.y) 
         push!(ses, p)
     end
+    nothing
 end
 
 function random_particle() :: Particle
@@ -148,6 +149,8 @@ end
 
 function main()::Nothing
     particles::Vector{Particle} = [random_particle() for _ ∈ 1:1000]
+    root = BHTree(particles, Point(0, 0), 1e10)
     nothing
 end
+
 main()
