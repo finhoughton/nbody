@@ -69,7 +69,7 @@ struct BHTree
         ses::Vector{Particle} = []
         quads = (nws, nes, sws, ses)
 
-        sizehint!.(quads, 3 + (len >> 2))
+        sizehint!.(quads, 3 + (0.25 * len))
 
         if length(particles) ≠ 1
             for particle in particles
@@ -83,7 +83,7 @@ struct BHTree
             centre + Point(-quarter_side_len, -quarter_side_len),
             centre + Point(quarter_side_len, -quarter_side_len))
 
-        subtrees = [Maybe(BHTree(quad, quad_centre, half_side_len)) for (quad, quad_centre) in zip(quads, centres)]
+        subtrees = [Just(BHTree(quad, quad_centre, half_side_len)) for (quad, quad_centre) in zip(quads, centres)]
         new(particles, subtrees..., centre_of_mass, side_length)
     end
 end

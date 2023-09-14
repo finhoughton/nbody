@@ -1,16 +1,12 @@
 
 struct Just{T}
-    _v::T
+    __v::T
 end
 
 Maybe{T} = Union{Just{T}, Nothing}
 
 function ==(a::Just{T}, b::Just{T})::Bool where {T}
-    a._v == b._v
-end
-
-function ==(a::Maybe{T}, b::Maybe{T})::Bool where {T}
-    a._v == b._v
+    a.__v == b.__v
 end
 
 """
@@ -39,18 +35,18 @@ Attempts to extract the value from a `Maybe`.
 if it is `nothing`, an error is raised, otherwise the value is returned.
 """
 function unsafe_from_just(value::Maybe{T})::T where {T}
-    is_nothing(value) ? error("unsafe_from_just recieved nothing value") : value._v
+    is_nothing(value) ? error("unsafe_from_just recieved nothing value") : value.__v
 end
 
 """
     if_just_then(default, func, value::Maybe{T})
 
 if the value is `nothing`, call the defualt function and return the result.
-Otherwise, extract the value from the `Maybe`, pass it to `func`, and return the result.
+Otherwise, extract the value from the `Just`, pass it to `func`, and return the result.
 """
 
 function if_just_then(default, func, value::Maybe{T}) where {T}
-    is_nothing(value) ? default() : func(value._v)
+    is_nothing(value) ? default() : func(value.__v)
 end
 
 """
@@ -79,21 +75,18 @@ lift a function to be applicable to `Maybe` values. If any of the input values a
 # examples
 ```julia-repl
 julia> maybe_add = lift(+)
-(::var"#lifted#3"{typeof(+)}) (generic function with 1 method)
-julia> a = maybe_add(Maybe(10), Maybe(4), Maybe(100))
-Maybe{Int64}(114)
-julia> unsafe_from_maybe(a)
-114
+(::var"#lifted#"{typeof(+)}) (generic function with 1 method)
+julia> a = maybe_add(Just(10), Just(4), Just(100))
+Just{Int64}(114)
 
-
-julia> b = maybe_add(Maybe(10), Maybe(4), Maybe(100), EmptyMaybe)
-Maybe{Nothing}(nothing)
+julia> nothing === maybe_add(Just(10), Just(4), Just(100), nothing)
+true
 ```
 
 """
 function lift(func)
-    function lifted(vs...)::Maybe{T} where T
-        any((is_nothing(v) for v in vs)) ? nothing : Maybe(func((v._v for v in vs)...))
+    function lifted(vs...)
+        any((is_nothing(v) for v in vs)) ? nothing : Just(func((v.__v for v in vs)...))
     end
 end
 
