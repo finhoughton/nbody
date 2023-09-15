@@ -132,11 +132,6 @@ function bh1(particles)
     nothing
 end
 
-function bh2(particles)
-    BHTree(1, particles, SVector{2, Float64}(0,0), 1e10)
-    nothing
-end
-
 function main()::Nothing
     particles::Vector{Particle} = [random_particle() for _ ∈ 1:100000]
     root = BHTree(particles, SVector{2, Float64}(0, 0), 1e10)
