@@ -77,11 +77,7 @@ struct BHTree
         half_side_len::Float64 = 0.5 * side_length
         quarter_side_len::Float64 = 0.5 * half_side_len 
 
-        nws::Vector{Particle} = []
-        nes::Vector{Particle} = []
-        sws::Vector{Particle} = []
-        ses::Vector{Particle} = []
-        quads = (nws, nes, sws, ses)
+        quads::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
 
         if length(particles) ≠ 1
             for particle ∈ particles
@@ -95,7 +91,7 @@ struct BHTree
             centre + SVector(-quarter_side_len, -quarter_side_len),
             centre + SVector(quarter_side_len, -quarter_side_len))
 
-        children = [BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) in zip(quads, centres)]
+        children = [BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quads, centres)]
         Just(new(particles, children..., centre_of_mass, side_length))
     end
 end
@@ -122,14 +118,9 @@ end
 
 function random_particle() :: Particle
     m::Float64 = M_EARTH * (rand() + 0.5)
-    pos::SVector{2, Float64} = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 4
-    v::SVector{2, Float64} = SVector{2, Float64}(rand(Float64, 2) * 2 - ones(2)) * DIST * 0.5
+    pos = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 4
+    v = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 0.5
     Particle(m, pos, v)
-end
-
-function bh1(particles)
-    BHTree(particles, SVector{2, Float64}(0,0), 1e10)
-    nothing
 end
 
 function main()::Nothing
