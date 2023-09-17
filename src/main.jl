@@ -122,7 +122,7 @@ function random_particle() :: Particle
     v = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 0.5
     Particle(m, pos, v)
 end
-
+ 
 function main()::Nothing
     particles::Vector{Particle} = [random_particle() for _ ∈ 1:100000]
     root = BHTree(particles, SVector{2, Float64}(0, 0), 1e10)
@@ -130,3 +130,4 @@ function main()::Nothing
 end
 
 main()
+ 

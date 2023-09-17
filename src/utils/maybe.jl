@@ -35,7 +35,7 @@ Attempts to extract the value from a `Maybe`.
 if it is `nothing`, an error is raised, otherwise the value is returned.
 """
 function unsafe_from_just(value::Maybe{T})::T where {T}
-    is_nothing(value) ? error("unsafe_from_just recieved nothing value") : value.__v
+    value.__v
 end
 
 """
@@ -48,7 +48,7 @@ Otherwise, extract the value from the `Just`, pass it to `func`, and return the 
 function if_just_then(default, func, value::Maybe{T}) where {T}
     is_nothing(value) ? default() : func(value.__v)
 end
-
+ 
 """
     is_something(value::Maybe{T})::Bool where {T}
 
@@ -89,5 +89,5 @@ function lift(func)
         any((is_nothing(v) for v in vs)) ? nothing : Just(func((v.__v for v in vs)...))
     end
 end
- 
+  
 nothing
