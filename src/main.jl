@@ -31,18 +31,18 @@ mutable struct Particle
         v::SVector{2, Float64}=zeros(Float64, 2); 
         fixed::Bool=false
     )::Particle
-        if size(v, 1) != 2
+        if size(v, 1) ≠ 2
             error("Particle only supports 2D positions and velocity")
-        elseif mass <= 0
+        elseif mass ≤ 0
             error("particle mass must be positive")
-        elseif fixed && norm(v) != 0
+        elseif fixed && norm(v) ≠ 0
             error("fixed is incomaptable with velocity.")
         end
         new(mass, pos, v, zeros(Float64, 2), fixed)
     end
 end
 
-function calculate_centre_of_mass(ps::Vector{Particle})::SVector{2, Float64}
+@inline function calculate_centre_of_mass(ps::Vector{Particle})::SVector{2, Float64}
     total_mass::Float64 = 0
     total::SVector{2, Float64} = SVector(0, 0)
     for p ∈ ps
@@ -77,11 +77,11 @@ struct BHTree
         half_side_len::Float64 = 0.5 * side_length
         quarter_side_len::Float64 = 0.5 * half_side_len 
 
-        quads::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
+        quadrants::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
 
         if length(particles) ≠ 1
             for particle ∈ particles
-                push_to_vector!(quads..., particle, centre)
+                push_to_vector!(quadrants..., particle, centre)
             end
         end
 
@@ -91,7 +91,7 @@ struct BHTree
             centre + SVector(-quarter_side_len, -quarter_side_len),
             centre + SVector(quarter_side_len, -quarter_side_len))
 
-        children = [BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quads, centres)]
+        children = [BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)]
         Just(new(particles, children..., centre_of_mass, side_length))
     end
 end
@@ -113,6 +113,16 @@ function push_to_vector!(
     elseif (p.pos[1] < c[1] && p.pos[2] < c[2]) 
         push!(ses, p)
     end
+    nothing
+end
+
+function test1(p::Vector{Particle})
+    root = BHTree(p, SVector{2, Float64}(0, 0), 1e10)
+    nothing
+end
+
+function test2(p::Vector{Particle})
+    root = BHTree(1, p, SVector{2, Float64}(0, 0), 1e10)
     nothing
 end
 
