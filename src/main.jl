@@ -19,10 +19,6 @@ const EDGE::Float64 = 10 * DIST
 const X_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
 const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
 
-function step!(particles::Vector{Particles})::Nothing
-    
-end
-
 function test1(p::Vector{Particle})
     root = BHTree(p, SVector{2, Float64}(0, 0), 1e10)
     nothing
