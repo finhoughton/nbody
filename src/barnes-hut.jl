@@ -23,16 +23,22 @@ struct BHTree
             return nothing
         end
 
-        centre_of_mass::SVector{2, Float64} = calculate_centre_of_mass(particles)
         half_side_len::Float64 = 0.5 * side_length
         quarter_side_len::Float64 = 0.5 * half_side_len 
 
         quadrants::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
 
         if length(particles) ≠ 1
+            total_mass::Float64 = 0
+            total_pos::SVector{2, Float64} = SVector(0, 0)
             for particle ∈ particles
+                total_mass += particle.mass
+                total_pos += particle.pos
                 push_to_vector!(quadrants..., particle, centre)
             end
+            centre_of_mass::SVector{2, Float64} = total_pos / total_mass
+        else
+            centre_of_mass = first(particles).pos
         end
 
         centres = (
@@ -44,16 +50,6 @@ struct BHTree
         children = [BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)]
         Just(new(particles, children..., centre_of_mass, side_length))
     end
-end
-
-@inline function calculate_centre_of_mass(ps::Vector{Particle})::SVector{2, Float64}
-    total_mass::Float64 = 0
-    total::SVector{2, Float64} = SVector(0, 0)
-    for p ∈ ps
-        total_mass += p.mass
-        total += p.pos
-    end
-    total / total_mass
 end
 
 function push_to_vector!(
