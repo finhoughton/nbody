@@ -78,8 +78,8 @@ function push_to_vector!(
 end
 
 function apply_force!(particle::Particle, node::BHTree)::Nothing
-    
-end
+    nothing # stuff
+end 
 
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     q = Queue{BHTree}()
@@ -90,7 +90,11 @@ function step!(particles::Vector{Particle}, root::BHTree)::Nothing
             distance_to_centre::Float64 = norm(particle.pos - current.centre)
             theta::Float64 = current.side_length / distance_to_centre
             if theta < MAC
-                
+                nothing
+                # stuff 
+            else
+                nothing
+                # other stuff
             end
     end
     nothing
