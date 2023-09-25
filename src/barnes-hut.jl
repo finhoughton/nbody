@@ -80,9 +80,8 @@ function push_to_vector!(
     nothing
 end
 
-@inline function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
+function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
     normalize(node.centre_of_mass - p.pos) * G * p.mass * node.total_mass * (1/norm(p.pos - node.centre_of_mass) ^ 2)
-    # XOR with 0x8000000000000000 for fast float inverse???
 end
 
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
