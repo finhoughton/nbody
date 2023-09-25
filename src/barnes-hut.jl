@@ -3,9 +3,11 @@ using DataStructures
 include("particle.jl")
 
 const MAC::Float64 = 1
+const NOOP = () -> begin end
 
 struct BHTree
     particles::Vector{Particle}
+    children::SVector{4, Maybe{BHTree}}
     NW::Maybe{BHTree}
     NE::Maybe{BHTree}
     SW::Maybe{BHTree}
@@ -53,8 +55,8 @@ struct BHTree
             centre + SVector(-quarter_side_len, -quarter_side_len),
             centre + SVector(quarter_side_len, -quarter_side_len))
 
-        children = [BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)]
-        Just(new(particles, children..., centre, total_mass, centre_of_mass, side_length))
+        children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)])
+        Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))
     end
 end
 
@@ -78,25 +80,28 @@ function push_to_vector!(
     nothing
 end
 
-function apply_force!(particle::Particle, node::BHTree)::Nothing
-    nothing # stuff
+@inline function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
+    normalize(node.centre_of_mass - p.pos) * G * p.mass * node.total_mass * (1/norm(p.pos - node.centre_of_mass) ^ 2)
+    # XOR with 0x8000000000000000 for fast float inverse???
 end
 
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
-    q = Queue{BHTree}()
-    for particle ∈ particles
-        enqueue!(q, root)
-        while true
-            current = dequeue!(q)
-            distance_to_centre::Float64 = norm(particle.pos - current.centre)
+    the_q = Queue{BHTree}()
+    for p ∈ particles
+        enqueue!(the_q, root)
+        while length(the_q) ≠ 0
+            current::BHTree = dequeue!(the_q)
+            distance_to_centre::Float64 = norm(p.pos - current.centre)
             theta::Float64 = current.side_length / distance_to_centre
-            if theta < MAC
-                nothing
-                # stuff 
+            if theta ≥ MAC
+                for c ∈ current.children
+                    if_just_then(NOOP, x -> enqueue!(the_q, x), c)
+                end
             else
-                nothing
-                # other stuff
+                f = calculate_force(p, current)
+                p.force_applied += f
             end
+        end
     end
     nothing
 end
