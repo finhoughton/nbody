@@ -36,14 +36,15 @@ struct BHTree
             total_mass = first(particles).mass
             centre_of_mass = first(particles).pos
         else
+            # centre of mass = (m_1 * r_1 + m_2 * r_2 * ...)/(m_1 + m_2 + ...)
             total_mass::Float64 = 0
-            total_pos::SVector{2, Float64} = SVector(0, 0)
+            total::SVector{2, Float64} = SVector(0, 0)
             for particle ∈ particles
                 total_mass += particle.mass
-                total_pos += particle.pos
+                total += particle.pos * particle.mass
                 push_to_vector!(quadrants..., particle, centre)
             end
-            centre_of_mass::SVector{2, Float64} = total_pos / total_mass
+            centre_of_mass::SVector{2, Float64} = total / total_mass
         end
 
         centres = (
@@ -79,7 +80,7 @@ end
 
 function apply_force!(particle::Particle, node::BHTree)::Nothing
     nothing # stuff
-end 
+end
 
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     q = Queue{BHTree}()
