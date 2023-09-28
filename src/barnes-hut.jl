@@ -81,26 +81,34 @@ function push_to_vector!(
 end
 
 function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
-    normalize(node.centre_of_mass - p.pos) * G * p.mass * node.total_mass * (1/norm(p.pos - node.centre_of_mass) ^ 2)
+    normalize(node.centre_of_mass - p.pos) * G * p.mass * (node.total_mass * (1/norm(p.pos - node.centre_of_mass) ^ 2))
+end
+
+function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
+    normalize(q.pos - p.pos) * G * p.mass * (q.mass * (1/norm(p.pos - q.pos) ^ 2))
+end
+
+function step_particle!(p::Particle, root::BHTree):: Nothing
+    the_q = Queue{BHTree}()
+    enqueue!(the_q, root)
+    while length(the_q) ≠ 0
+        current::BHTree = dequeue!(the_q)
+        distance_to_centre::Float64 = norm(p.pos - current.centre)
+        theta::Float64 = current.side_length / distance_to_centre
+        if theta < MAC
+            p.force_applied += calculate_force(p, current)
+            continue
+        end
+        for c ∈ current.children
+            if_just_then(NOOP, x -> enqueue!(the_q, x), c)
+        end
+    end
+    nothing
 end
 
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
-    the_q = Queue{BHTree}()
     for p ∈ particles
-        enqueue!(the_q, root)
-        while length(the_q) ≠ 0
-            current::BHTree = dequeue!(the_q)
-            distance_to_centre::Float64 = norm(p.pos - current.centre)
-            theta::Float64 = current.side_length / distance_to_centre
-            if theta ≥ MAC
-                for c ∈ current.children
-                    if_just_then(NOOP, x -> enqueue!(the_q, x), c)
-                end
-            else
-                f = calculate_force(p, current)
-                p.force_applied += f
-            end
-        end
+        step_particle!(p, root)
     end
     nothing
 end
