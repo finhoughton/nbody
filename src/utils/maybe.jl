@@ -10,7 +10,7 @@ function Base.:(==)(a::Just{T}, b::Just{T})::Bool where {T}
 end
  
 """
-    from_maybe_with(default::B, func, value::Maybe{T})::B where {T}
+    from_maybe_with(default::A, func::(T -> A), value::Maybe{T})::A where {T, A}
 
 If the `Maybe` value is `nothing`, the function returns the `default` value. 
 Otherwise, it applies the function to the value inside the `Maybe` and returns the result.
@@ -39,16 +39,15 @@ function unsafe_from_just(value::Maybe{T})::T where {T}
 end
 
 """
-    if_just_then(default, func, value::Maybe{T})
+    branch_if_just(default::(A), func::(T -> A), value::Maybe{T})::A where {T, A}
 
 if the value is `nothing`, call the defualt function and return the result.
 Otherwise, extract the value from the `Just`, pass it to `func`, and return the result.
 """
-
-function if_just_then(default, func, value::Maybe{T}) where {T}
+function branch_if_just(default, func, value::Maybe{T}) where {T, A}
     is_nothing(value) ? default() : func(value.__v)
 end
- 
+
 """
     is_something(value::Maybe{T})::Bool where {T}
 
@@ -68,7 +67,7 @@ function is_nothing(value::Maybe{T})::Bool where {T}
 end 
 
 """
-    lift(func::(A -> B -> ... -> Z))::(Maybe{A} -> Maybe{B} -> ... -> Maybe{Z})
+    lift(func::(A, B, ... -> Z))::(Maybe{A}, Maybe{B}, ... -> Maybe{Z})
 
 lift a function to be applicable to `Maybe` values. If any of the input values are `nothing`, `nothing` is returned.
 
@@ -86,7 +85,7 @@ true
 """
 function lift(func)
     function lifted(vs...)
-        any((is_nothing(v) for v in vs)) ? nothing : Just(func((v.__v for v in vs)...))
+        any((is_nothing(v) for v ∈ vs)) ? nothing : Just(func((v.__v for v ∈ vs)...))
     end
 end
   

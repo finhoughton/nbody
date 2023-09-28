@@ -2,8 +2,7 @@ using DataStructures
 
 include("particle.jl")
 
-const MAC::Float64 = 1
-const NOOP = () -> begin end
+const MAC::Float64 = 1 # smaller MAC = more accurate
 
 struct BHTree
     particles::Vector{Particle}
@@ -56,7 +55,7 @@ struct BHTree
             centre + SVector(quarter_side_len, -quarter_side_len))
 
         children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)])
-        Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))
+        return Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))
     end
 end
 
@@ -94,21 +93,16 @@ function step_particle!(p::Particle, root::BHTree):: Nothing
     while length(the_q) ≠ 0
         current::BHTree = dequeue!(the_q)
         distance_to_centre::Float64 = norm(p.pos - current.centre)
-        theta::Float64 = current.side_length / distance_to_centre
-        if theta < MAC
+        if current.side_length < MAC * distance_to_centre
             p.force_applied += calculate_force(p, current)
-            continue
-        end
-        for c ∈ current.children
-            if_just_then(NOOP, x -> enqueue!(the_q, x), c)
+        else
+            from_maybe_with.(nothing, x -> enqueue!(the_q, x), current.children)
         end
     end
     nothing
 end
 
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
-    for p ∈ particles
-        step_particle!(p, root)
-    end
-    nothing
+    step_particle!.(particles, root)
 end
+ 
