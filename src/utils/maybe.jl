@@ -44,7 +44,7 @@ end
 if the value is `nothing`, call the defualt function and return the result.
 Otherwise, extract the value from the `Just`, pass it to `func`, and return the result.
 """
-function branch_if_just(default, func, value::Maybe{T}) where {T, A}
+function branch_if_just(default, func, value::Maybe{T}) where {T}
     is_nothing(value) ? default() : func(value.__v)
 end
 
@@ -64,7 +64,7 @@ if a `Maybe` value is `nothing`
 """
 function is_nothing(value::Maybe{T})::Bool where {T}
     value ≡ nothing
-end 
+end
 
 """
     lift(func::(A, B, ... -> Z))::(Maybe{A}, Maybe{B}, ... -> Maybe{Z})
@@ -88,5 +88,5 @@ function lift(func)
         any((is_nothing(v) for v ∈ vs)) ? nothing : Just(func((v.__v for v ∈ vs)...))
     end
 end
-  
+
 nothing

@@ -105,4 +105,3 @@ end
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     step_particle!.(particles, root)
 end
- 

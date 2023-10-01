@@ -39,7 +39,7 @@ end
 function main()::Nothing
     particles::Vector{Particle} = [random_particle() for _ ∈ 1:100000]
     root = BHTree(particles, SVector{2, Float64}(0, 0), 1e10)
-    nothing
+    step!(particles, root)
 end
 
 main()
