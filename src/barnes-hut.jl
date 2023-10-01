@@ -80,15 +80,14 @@ function push_to_vector!(
 end
 
 function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
-    normalize(node.centre_of_mass - p.pos) * G * p.mass * (node.total_mass * (1/norm(p.pos - node.centre_of_mass) ^ 2))
+    normalize(node.centre_of_mass - p.pos) * G * p.mass * (node.total_mass * inv(norm(p.pos - node.centre_of_mass) ^ 2))
 end
 
 function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
-    normalize(q.pos - p.pos) * G * p.mass * (q.mass * (1/norm(p.pos - q.pos) ^ 2))
+    normalize(q.pos - p.pos) * G * p.mass * (q.mass * inv(norm(p.pos - q.pos) ^ 2))
 end
 
-function step_particle!(p::Particle, root::BHTree):: Nothing
-    the_q = Queue{BHTree}()
+function step_particle!(p::Particle, root::BHTree, the_q::Queue{BHTree}):: Nothing
     enqueue!(the_q, root)
     while length(the_q) ≠ 0
         current::BHTree = dequeue!(the_q)
@@ -96,12 +95,19 @@ function step_particle!(p::Particle, root::BHTree):: Nothing
         if current.side_length < MAC * distance_to_centre
             p.force_applied += calculate_force(p, current)
         else
-            from_maybe_with.(nothing, x -> enqueue!(the_q, x), current.children)
+            from_maybe_with.(
+                nothing,
+                x -> enqueue!(the_q, x),
+                current.children
+                )
         end
     end
     nothing
 end
 
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
-    step_particle!.(particles, root)
+    the_q = Queue{BHTree}()
+    for p ∈ particles
+        step_particle!(p, root, the_q)
+    end
 end

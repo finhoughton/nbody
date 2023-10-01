@@ -1,4 +1,3 @@
-using Match
 using LinearAlgebra
 using StaticArrays
 
@@ -38,9 +37,10 @@ end
  
 function main()::Nothing
     particles::Vector{Particle} = [random_particle() for _ ∈ 1:100000]
-    root = BHTree(particles, SVector{2, Float64}(0, 0), 1e10)
+    root = unsafe_from_just(BHTree(particles, SVector{2, Float64}(0, 0), 1e10))
     step!(particles, root)
+    print("ran")
+    nothing
 end
 
 main()
- 

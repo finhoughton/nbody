@@ -15,7 +15,7 @@ end
 If the `Maybe` value is `nothing`, the function returns the `default` value. 
 Otherwise, it applies the function to the value inside the `Maybe` and returns the result.
 """
-function from_maybe_with(default::A, func, value::Maybe{T})::A where {T, A}
+function from_maybe_with(default, func, value::Maybe{T}) where {T}
     is_nothing(value) ? default : func(value.__v)
 end
 
