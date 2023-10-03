@@ -30,14 +30,13 @@ struct BHTree
 
         half_side_len::Float64 = 0.5 * side_length
         quarter_side_len::Float64 = 0.5 * half_side_len 
-
         quadrants::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
-
+ 
         if length(particles) == 1
             total_mass = first(particles).mass
             centre_of_mass = first(particles).pos
         else
-            # centre of mass = (m_1 * r_1 + m_2 * r_2 * ...)/(m_1 + m_2 + ...)
+            # centre of mass = (m_1r_1 + m_2r_2 + ...)/(m_1 + m_2 + ...)
             total_mass::Float64 = 0
             total::SVector{2, Float64} = SVector(0, 0)
             for particle ∈ particles
@@ -78,7 +77,7 @@ function push_to_vector!(
     end
     nothing
 end
-
+ 
 function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
     normalize(node.centre_of_mass - p.pos) * G * p.mass * (node.total_mass * inv(norm(p.pos - node.centre_of_mass) ^ 2))
 end
@@ -89,7 +88,7 @@ end
 
 function step_particle!(p::Particle, root::BHTree, the_q::Queue{BHTree}):: Nothing
     enqueue!(the_q, root)
-    while length(the_q) ≠ 0
+    while !isempty(the_q)
         current::BHTree = dequeue!(the_q)
         distance_to_centre::Float64 = norm(p.pos - current.centre)
         if current.side_length < MAC * distance_to_centre
