@@ -59,14 +59,14 @@ function step_particle!(p::Particle, root::BHTree, the_q::Queue{BHTree}):: Nothi
     nothing
 end
 
-function step!(particles::Vector{Particle}, root::BHTree, dt::Float64)::Nothing
+function step!(particles::Vector{Particle}, root::BHTree, Δt::Float64)::Nothing
     the_q = Queue{BHTree}()
     for p ∈ particles
         step_particle!(p, root, the_q)
         a::SVector{2, Float64} = p.force_applied / p.mass
-        dv::SVector{2, Float64} = a * dt
+        dv::SVector{2, Float64} = a * Δt
         p.v += dv
-        p.pos += p.v * dt
+        p.pos += p.v * Δt
     end
 end
 
@@ -74,21 +74,21 @@ function main()::Nothing
     particles::Vector{Particle} = [random_particle() for _ ∈ 1:100]
     root = unsafe_from_just(BHTree(particles, SVector{2, Float64}(0, 0), EDGE))
     t::Float64 = 0
-    dt::Float64 = 1/32
+    Δt::Float64 = 1/32
     while true
         start::DateTime = now()
         root = unsafe_from_just(BHTree(particles, SVector{2, Float64}(0, 0), EDGE))
-        step!(particles, root)
+        step!(particles, root, Δt)
         filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
         showparticles(particles)
 
         timetaken = convert(Millisecond, now() - start)
-        if (v = value(timetaken)) < dt * 1000
-            a = dt - v/1000
-            println("sleeping for $a")
-            sleep(a)
+        if (v = value(timetaken)) < Δt * 1000
+            sleeptime = Δt - v/1000
+            println("sleeping for $sleeptime")
+            sleep(sleeptime)
         end
-        t += dt
+        t += Δt
     end
     nothing
 end
