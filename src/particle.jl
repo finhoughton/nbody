@@ -26,3 +26,6 @@ mutable struct Particle
     end
 end
 
+function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
+    normalize(q.pos - p.pos) * G * p.mass * (q.mass * inv(norm(p.pos - q.pos) ^ 2))
+end
