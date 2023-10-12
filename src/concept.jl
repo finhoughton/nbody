@@ -45,6 +45,8 @@ let id::Int = 0
         end
     end
 end
+Particle = Particle
+
 
 function apply_force!(force::Vector{Float64}, particle::Particle)::Nothing
     particle.force_applied += force
