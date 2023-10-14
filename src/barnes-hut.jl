@@ -77,7 +77,7 @@ function push_to_vector!(
     end
     nothing
 end
- 
+
 function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
     normalize(node.centre_of_mass - p.pos) * G * p.mass * (node.total_mass * inv(norm(p.pos - node.centre_of_mass) ^ 2))
 end
