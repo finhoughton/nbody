@@ -1,7 +1,7 @@
 using StaticArrays
 using LinearAlgebra
 
-include("utils/maybe.jl")
+include("utils.jl")
 
 mutable struct Particle
     mass::Float64
