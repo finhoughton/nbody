@@ -12,6 +12,7 @@ include("barnes-hut.jl")
 # particle
 # utils
 
+# ----- constants -----
 
 const M_EARTH::Float64 = 6e22
 
@@ -28,12 +29,7 @@ const EDGE::Float64 = 10 * DIST
 const X_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
 const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
 
-function random_particle() :: Particle
-    mass::Float64 = M_EARTH * (rand() + 0.5)
-    position = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 4
-    velocity = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 0.2
-    Particle(mass=mass, pos=position, v=velocity)
-end
+# ------ displaying ------
 
 function showparticles(particles::Vector{Particle})::Nothing
 
@@ -76,35 +72,38 @@ function step!(particles::Vector{Particle}, root::BHTree, Δt::Float64)::Nothing
         p.pos += p.v * Δt
     end
 end
-"""
-    save_simulation!(file::IOStream, ps::Vector{Particle})::Nothing
 
-save the current state of the simulation to the file, which can later be read by `read_simulation`
-"""
+# ----- saving ------
+
+const delimiter::String = "   "
+
 function save_simulation!(file::IOStream, ps::Vector{Particle}, iteration_num::Integer = 0)::Nothing
-    write(file, string(iteration_num, " ", length(ps)))
+    write(file, string(iteration_num, delimiter, length(ps), "\n"))
     fields::Tuple{Vararg{Symbol}} = fieldnames(Particle)
     for p ∈ ps
-        join(file, [getfield(p, f) for f ∈ fields], " ")
+        join(file, [getfield(p, f) for f ∈ fields], delimiter)
         write(file, "\n")
     end
     nothing
 end
 
-function parse_particle(s::String)::Particle
-    ts = Particle.types
-    p = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(ts, split(s, " "))]
-    Particle(p...)
-end
-
-function read_simulation(file::IOStream)::tuple{Int64, Vector{Particle}}
-    iteration_num, num_particles = parse.(Int64, tuple(split(readline(file), " ")...))
+function read_simulation(file::IOStream)::Tuple{Int64, Vector{Particle}}
+    iteration_num, num_particles = parse.(Int64, tuple(string.(split(readline(file), delimiter))...))
     ps::Vector{Particle} = Vector{Particle}(undef, num_particles)
     for (idx, line) ∈ enumerate(eachline(file))
-        p = parse_particle(line)
-        ps[idx] = p
+        p = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(Particle.types, split(s, delimiter))]
+        ps[idx] = Particle(p...)
     end
     (iteration_num, ps)
+end
+
+# ----- main function -----
+
+function random_particle() :: Particle
+    mass::Float64 = M_EARTH * (rand() + 0.5)
+    position = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 4
+    velocity = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 0.2
+    Particle(mass=mass, pos=position, v=velocity)
 end
 
 function main()::Nothing
