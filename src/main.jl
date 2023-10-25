@@ -91,7 +91,7 @@ function read_simulation(file::IOStream)::Tuple{Int64, Vector{Particle}}
     iteration_num, num_particles = parse.(Int64, tuple(string.(split(readline(file), delimiter))...))
     ps::Vector{Particle} = Vector{Particle}(undef, num_particles)
     for (idx, line) ∈ enumerate(eachline(file))
-        p = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(Particle.types, split(s, delimiter))]
+        p = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(Particle.types, split(line, delimiter))]
         ps[idx] = Particle(p...)
     end
     (iteration_num, ps)
