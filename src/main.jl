@@ -6,6 +6,13 @@ gr()
 
 include("barnes-hut.jl")
 
+# order of include():
+# main
+# barnes-hut
+# particle
+# utils
+
+
 const M_EARTH::Float64 = 6e22
 
 const DIST::Float64 = 1e9
@@ -22,10 +29,10 @@ const X_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
 const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
 
 function random_particle() :: Particle
-    m::Float64 = M_EARTH * (rand() + 0.5)
-    pos = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 4
-    v = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 0.2
-    Particle(m, pos, v)
+    mass::Float64 = M_EARTH * (rand() + 0.5)
+    position = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 4
+    velocity = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 0.2
+    Particle(mass=mass, pos=position, v=velocity)
 end
 
 function showparticles(particles::Vector{Particle})::Nothing
@@ -69,26 +76,62 @@ function step!(particles::Vector{Particle}, root::BHTree, Δt::Float64)::Nothing
         p.pos += p.v * Δt
     end
 end
+"""
+    save_simulation!(file::IOStream, ps::Vector{Particle})::Nothing
+
+save the current state of the simulation to the file, which can later be read by `read_simulation`
+"""
+function save_simulation!(file::IOStream, ps::Vector{Particle}, iteration_num::Integer = 0)::Nothing
+    write(file, string(iteration_num, " ", length(ps)))
+    fields::Tuple{Vararg{Symbol}} = fieldnames(Particle)
+    for p ∈ ps
+        join(file, [getfield(p, f) for f ∈ fields], " ")
+        write(file, "\n")
+    end
+    nothing
+end
+
+function parse_particle(s::String)::Particle
+    ts = Particle.types
+    p = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(ts, split(s, " "))]
+    Particle(p...)
+end
+
+function read_simulation(file::IOStream)::tuple{Int64, Vector{Particle}}
+    iteration_num, num_particles = parse.(Int64, tuple(split(readline(file), " ")...))
+    ps::Vector{Particle} = Vector{Particle}(undef, num_particles)
+    for (idx, line) ∈ enumerate(eachline(file))
+        p = parse_particle(line)
+        ps[idx] = p
+    end
+    (iteration_num, ps)
+end
 
 function main()::Nothing
-    particles::Vector{Particle} = [random_particle() for _ ∈ 1:100]
+    particles::Vector{Particle} = [random_particle() for _ ∈ 1:5]
     t::Float64 = 0
     Δt::Float64 = 1/32
-    while !isempty(particles)
-        start::DateTime = now()
-        root = unsafe_from_just(BHTree(particles, SVector{2, Float64}(0, 0), 2 * EDGE))
-        step!(particles, root, Δt)
-        filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
-        showparticles(particles)
+    f = open("save.txt", "w")
+    save_simulation!(f, particles)
+    close(f)
+    f = open("save.txt", "r")
+    ps = read_simulation(f)
+    close(f)
+    # while !isempty(particles)
+    #     start::DateTime = now()
+    #     root = unsafe_from_just(BHTree(particles, SVector{2, Float64}(0, 0), 2 * EDGE))
+    #     step!(particles, root, Δt)
+    #     filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
+    #     showparticles(particles)
 
-        timetaken = convert(Millisecond, now() - start)
-        if (v = value(timetaken)) < Δt * 1000
-            sleeptime = Δt - v/1000
-            println("sleeping for $sleeptime")
-            sleep(sleeptime)
-        end
-        t += Δt
-    end
+    #     timetaken = convert(Millisecond, now() - start)
+    #     if (v = value(timetaken)) < Δt * 1000
+    #         sleeptime = Δt - v/1000
+    #         println("sleeping for $sleeptime")
+    #         sleep(sleeptime)
+    #     end
+    #     t += Δt
+    # end
     nothing
 end
 
