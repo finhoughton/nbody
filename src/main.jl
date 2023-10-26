@@ -32,9 +32,7 @@ const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
 # ------ displaying ------
 
 function showparticles(particles::Vector{Particle})::Nothing
-
     positions::Vector{Vector{Float64}} = [p.pos for p in particles]
-
     xs::Vector{Float64} = getindex.(positions, 1)
     ys::Vector{Float64} = getindex.(positions, 2)
     p::Plots.Plot = scatter(xs, ys, legend=false, showaxis=false, background_colour=:black)
@@ -101,8 +99,8 @@ end
 
 function random_particle() :: Particle
     mass::Float64 = M_EARTH * (rand() + 0.5)
-    position = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 4
-    velocity = SVector{2, Float64}(rand() - 0.5, rand() - 0.5) * DIST * 0.2
+    position = SA[rand() - 0.5, rand() - 0.5] * DIST * 4
+    velocity = SA[rand() - 0.5, rand() - 0.5] * DIST * 0.2
     Particle(mass=mass, pos=position, v=velocity)
 end
 
@@ -110,27 +108,21 @@ function main()::Nothing
     particles::Vector{Particle} = [random_particle() for _ ∈ 1:5]
     t::Float64 = 0
     Δt::Float64 = 1/32
-    f = open("save.txt", "w")
-    save_simulation!(f, particles)
-    close(f)
-    f = open("save.txt", "r")
-    ps = read_simulation(f)
-    close(f)
-    # while !isempty(particles)
-    #     start::DateTime = now()
-    #     root = unsafe_from_just(BHTree(particles, SVector{2, Float64}(0, 0), 2 * EDGE))
-    #     step!(particles, root, Δt)
-    #     filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
-    #     showparticles(particles)
+    while !isempty(particles)
+        start::DateTime = now()
+        root = unsafe_from_just(BHTree(particles, SA[0, 0], 2 * EDGE))
+        step!(particles, root, Δt)
+        filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
+        showparticles(particles)
 
-    #     timetaken = convert(Millisecond, now() - start)
-    #     if (v = value(timetaken)) < Δt * 1000
-    #         sleeptime = Δt - v/1000
-    #         println("sleeping for $sleeptime")
-    #         sleep(sleeptime)
-    #     end
-    #     t += Δt
-    # end
+        timetaken = convert(Millisecond, now() - start)
+        if (v = value(timetaken)) < Δt * 1000
+            sleeptime = Δt - v/1000
+            println("sleeping for $sleeptime")
+            sleep(sleeptime)
+        end
+        t += Δt
+    end
     nothing
 end
 
