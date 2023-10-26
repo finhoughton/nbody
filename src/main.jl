@@ -14,6 +14,10 @@ include("barnes-hut.jl")
 
 # ----- constants -----
 
+const FPS::Int64 = 32
+
+const Δt::Float64 = 1/FPS
+
 const M_EARTH::Float64 = 6e22
 
 const DIST::Float64 = 1e9
@@ -60,7 +64,7 @@ function step_particle!(p::Particle, root::BHTree, the_q::Queue{BHTree}):: Nothi
     nothing
 end
 
-function step!(particles::Vector{Particle}, root::BHTree, Δt::Float64)::Nothing
+function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     the_q = Queue{BHTree}()
     for p ∈ particles
         step_particle!(p, root, the_q)
@@ -99,19 +103,18 @@ end
 
 function random_particle() :: Particle
     mass::Float64 = M_EARTH * (rand() + 0.5)
-    position = SA[rand() - 0.5, rand() - 0.5] * DIST * 4
-    velocity = SA[rand() - 0.5, rand() - 0.5] * DIST * 0.2
+    position::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 4
+    velocity::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 0.2
     Particle(mass=mass, pos=position, v=velocity)
 end
 
 function main()::Nothing
-    particles::Vector{Particle} = [random_particle() for _ ∈ 1:5]
+    particles::Vector{Particle} = [random_particle() for _ ∈ 1:100]
     t::Float64 = 0
-    Δt::Float64 = 1/32
     while !isempty(particles)
         start::DateTime = now()
-        root = unsafe_from_just(BHTree(particles, SA[0, 0], 2 * EDGE))
-        step!(particles, root, Δt)
+        root = unsafe_from_just(BHTree(particles, SA[0.0, 0.0], 2 * EDGE))
+        step!(particles, root)
         filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
         showparticles(particles)
 
