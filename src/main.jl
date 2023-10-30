@@ -14,7 +14,7 @@ include("barnes-hut.jl")
 
 # ----- constants -----
 
-const FPS::Int64 = 32
+const FPS::Int64 = 50
 
 const Δt::Float64 = 1/FPS
 
@@ -23,9 +23,9 @@ const M_EARTH::Float64 = 6e22
 const DIST::Float64 = 1e9
 
 # const G::Float64 = 6.674e-11
-const G::Float64 = 3
+const G::Float64 = 30
 
-const EPS_SOFTENING::Float64 = 1e10
+const EPS_SOFTENING::Float64 = 1e8
 # stop forcess becoming too big when objects are very close
 
 const EDGE::Float64 = 10 * DIST
@@ -72,6 +72,7 @@ function step!(particles::Vector{Particle}, root::BHTree)::Nothing
         dv::SVector{2, Float64} = a * Δt
         p.v += dv
         p.pos += p.v * Δt
+        p.force_applied = SA[0.0, 0.0]
     end
 end
 
@@ -79,8 +80,10 @@ end
 
 const delimiter::String = "   "
 
-function save_simulation!(file::IOStream, ps::Vector{Particle}, iteration_num::Integer = 0)::Nothing
-    write(file, string(iteration_num, delimiter, length(ps), "\n"))
+function save_simulation!(file::IOStream, ps::Vector{T}, data::Vector{Int64})::Nothing where {T}
+    push!(data, length(ps))
+    join(file, data, delimiter)
+    write(file, "\n")
     fields::Tuple{Vararg{Symbol}} = fieldnames(Particle)
     for p ∈ ps
         join(file, [getfield(p, f) for f ∈ fields], delimiter)
@@ -89,17 +92,37 @@ function save_simulation!(file::IOStream, ps::Vector{Particle}, iteration_num::I
     nothing
 end
 
-function read_simulation(file::IOStream)::Tuple{Int64, Vector{Particle}}
-    iteration_num, num_particles = parse.(Int64, tuple(string.(split(readline(file), delimiter))...))
-    ps::Vector{Particle} = Vector{Particle}(undef, num_particles)
+function read_simulation(file::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector{T}}
+    (data..., num_particles) = parse.(Int64, tuple(string.(split(readline(file), delimiter))...))
+    ps::Vector{T} = Vector{T}(undef, num_particles)
     for (idx, line) ∈ enumerate(eachline(file))
-        p = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(Particle.types, split(line, delimiter))]
-        ps[idx] = Particle(p...)
+        particle = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(T.types, split(line, delimiter))]
+        ps[idx] = Particle(particle...)
     end
-    (iteration_num, ps)
+    (data, ps)
 end
 
 # ----- main function -----
+
+
+function test_saving(particles::Vector{Particle})::Nothing
+    fp = "data/save.txt"
+    file = open(fp, "w")
+    save_simulation!(file, particles, Vector{Int64}() )
+    close(file)
+    particles
+    file = open(fp, "r")
+    data, ps = read_simulation(file, Particle)
+    ps::Vector{Particle}
+    close(file)
+    for (p1, p2) ∈ zip(ps, particles)
+        println(p1)
+        println(p2)
+        println(p1 == p2)
+        println()
+    end
+    nothing
+end
 
 function random_particle() :: Particle
     mass::Float64 = M_EARTH * (rand() + 0.5)
