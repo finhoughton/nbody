@@ -80,7 +80,7 @@ end
 
 const delimiter::String = "   "
 
-function save_simulation!(file::IOStream, ps::Vector{T}, data::Vector{Int64})::Nothing where {T}
+function save!(file::IOStream, ps::Vector{T}, data::Vector{Int64})::Nothing where {T}
     push!(data, length(ps))
     join(file, data, delimiter)
     write(file, "\n")
@@ -92,7 +92,7 @@ function save_simulation!(file::IOStream, ps::Vector{T}, data::Vector{Int64})::N
     nothing
 end
 
-function read_simulation(file::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector{T}}
+function read(file::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector{T}}
     (data..., num_particles) = parse.(Int64, tuple(string.(split(readline(file), delimiter))...))
     ps::Vector{T} = Vector{T}(undef, num_particles)
     for (idx, line) ∈ enumerate(eachline(file))
@@ -108,17 +108,16 @@ end
 function test_saving(particles::Vector{Particle})::Nothing
     fp = "data/save.txt"
     file = open(fp, "w")
-    save_simulation!(file, particles, Vector{Int64}() )
+    save!(file, particles, Vector{Int64}() )
     close(file)
     particles
     file = open(fp, "r")
-    data, ps = read_simulation(file, Particle)
+    data, ps = read(file, Particle)
     ps::Vector{Particle}
     close(file)
     for (p1, p2) ∈ zip(ps, particles)
         println(p1)
         println(p2)
-        println(p1 == p2)
         println()
     end
     nothing
