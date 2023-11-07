@@ -2,6 +2,7 @@ using LinearAlgebra
 using StaticArrays
 using Dates: now, value, DateTime, Millisecond
 using Plots
+using Random
 gr()
 
 include("barnes-hut.jl")
@@ -102,6 +103,40 @@ function read(file::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector{T
     (data, ps)
 end
 
+# ----- creaing particles -----
+
+function random_particle() :: Particle
+    mass::Float64 = M_EARTH * (rand() + 0.5)
+    position::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 4
+    velocity::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 0.2
+    Particle(mass=mass, pos=position, v=velocity)
+end
+
+function random_particles(
+    ;n::Int64,
+    edge_len::Float64,
+    mass_mean::Float64,
+    mass_stddev::Float64,
+    velocity_mean::Float64,
+    velocity_stddev::Float64
+    ) :: Vector{Particle}
+
+    masses = Vector{Float64}(undef, n)
+    positions = Vector{SVector{2, Float64}}(undef, n)
+    velocities = Vector{SVector{2, Float64}}(undef, n)
+
+    randn!(Float64, masses)
+    map!(x -> abs(x) * mass_stddev + mass_mean, masses)
+
+    rand!(SVector{2, Float64}, positions)
+    map!(x -> x * edge_len, positions)
+
+    randn!(SVector{2, Float64}, velocities)
+    map!(x -> x * velocity_stddev .+ velocity_mean, velocities)
+
+    particles::Vector{Particle} = Particle.(masses, positions, velocities)
+end
+
 # ----- main function -----
 
 
@@ -121,13 +156,6 @@ function test_saving(particles::Vector{Particle})::Nothing
         println()
     end
     nothing
-end
-
-function random_particle() :: Particle
-    mass::Float64 = M_EARTH * (rand() + 0.5)
-    position::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 4
-    velocity::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 0.2
-    Particle(mass=mass, pos=position, v=velocity)
 end
 
 function main()::Nothing
