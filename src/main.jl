@@ -2,6 +2,7 @@ using LinearAlgebra
 using StaticArrays
 using Dates: now, value, DateTime, Millisecond
 using Plots
+using Combinatorics: combinations
 using Random
 gr()
 
@@ -26,6 +27,8 @@ function showparticles(particles::Vector{Particle})::Nothing
     nothing
 end
 
+# ------ iteration ------
+
 function step_particle!(p::Particle, root::BHTree, the_q::Queue{BHTree}):: Nothing
     enqueue!(the_q, root)
     while !isempty(the_q)
@@ -47,6 +50,9 @@ end
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     the_q = Queue{BHTree}()
     for p ∈ particles
+        if p.fixed
+            continue
+        end
         step_particle!(p, root, the_q)
         a::SVector{2, Float64} = p.force_applied / p.mass
         dv::SVector{2, Float64} = a * Δt
@@ -54,6 +60,22 @@ function step!(particles::Vector{Particle}, root::BHTree)::Nothing
         p.pos += p.v * Δt
         p.force_applied = SA[0.0, 0.0]
     end
+end
+
+function step!(particles::Vector{Particle})::Nothing
+    for (p, q) in combinations(particles, 2)
+        fp = calculate_force(p, q)
+        p.force_applied += fp
+        q.force_applied += -fp # third law
+    end
+    for p ∈ particles
+        a::SVector{2, Float64} = p.force_applied / p.mass
+        dv::SVector{2, Float64} = a * Δt
+        p.v += dv
+        p.pos += p.v * Δt
+        p.force_applied = SA[0.0, 0.0]
+    end
+    nothing
 end
 
 # ----- saving ------
