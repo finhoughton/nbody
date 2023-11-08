@@ -94,10 +94,15 @@ function save!(file::IOStream, ps::Vector{T}, data::Vector{Int64})::Nothing wher
     nothing
 end
 
-function read(file::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector{T}}
-    (data..., num_particles) = parse.(Int64, tuple(string.(split(readline(file), delimiter))...))
+"""
+    read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector{T}}
+
+read data from IOStream as was written by `save!`
+"""
+function read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector}
+    (data..., num_particles) = parse.(Int64, tuple(string.(split(readline(stream), delimiter))...))
     ps::Vector{T} = Vector{T}(undef, num_particles)
-    for (idx, line) ∈ enumerate(eachline(file))
+    for (idx, line) ∈ enumerate(eachline(stream))
         particle = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(T.types, split(line, delimiter))]
         ps[idx] = Particle(particle...)
     end
