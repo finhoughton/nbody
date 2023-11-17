@@ -63,7 +63,7 @@ function step!(particles::Vector{Particle}, root::BHTree)::Nothing
 end
 
 function step!(particles::Vector{Particle})::Nothing
-    for (p, q) in combinations(particles, 2)
+    for (p, q) ∈ combinations(particles, 2)
         fp = calculate_force(p, q)
         p.force_applied += fp
         q.force_applied += -fp # third law
@@ -114,7 +114,7 @@ end
 function test_saving(particles::Vector{Particle})::Nothing
     fp = "data/save.txt"
     file = open(fp, "w")
-    save!(file, particles, Vector{Int64}() )
+    save!(file, particles, [])
     close(file)
     particles
     file = open(fp, "r")
@@ -130,13 +130,16 @@ function test_saving(particles::Vector{Particle})::Nothing
 end
 
 function main()::Nothing
-    particles::Vector{Particle} = [random_particle() for _ ∈ 1:100]
+    # particles::Vector{Particle} = [random_particle() for _ ∈ 1:100]
+    particles::Vector{Particle} = []
+    append!(particles, [random_particle() for _ ∈ 1:50])
+    push!(particles, Particle(mass=10.0^30, fixed=true))
     t::Float64 = 0
     while !isempty(particles)
         start::DateTime = now()
         root = unsafe_from_just(BHTree(particles, SA[0.0, 0.0], 2 * EDGE))
         step!(particles, root)
-        filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
+        # filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
         showparticles(particles)
 
         timetaken = convert(Millisecond, now() - start)

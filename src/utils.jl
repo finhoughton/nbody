@@ -11,7 +11,7 @@ const M_EARTH::Float64 = 6e22
 const DIST::Float64 = 1e9
 
 # const G::Float64 = 6.674e-11
-const G::Float64 = 30
+const G::Float64 = 10^-3
 
 const EPS_SOFTENING::Float64 = 1e8
 # stop forcess becoming too big when objects are very close

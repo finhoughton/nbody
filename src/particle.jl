@@ -13,8 +13,8 @@ end
 
 function Particle(
     ;mass::Float64,
-    pos::SVector{2, Float64}=zeros(Float64, 2),
-    v::SVector{2, Float64}=zeros(Float64, 2),
+    pos::SVector{2, Float64}=SVector{2, Float64}(zeros(Float64, 2)),
+    v::SVector{2, Float64}=SVector{2, Float64}(zeros(Float64, 2)),
     fixed::Bool=false
 )::Particle
     if mass ≤ 0
@@ -22,7 +22,7 @@ function Particle(
     elseif fixed && norm(v) ≠ 0
         error("fixed is incomaptable with velocity.")
     end
-    Particle(mass, pos, v, zeros(Float64, 2), fixed)
+    Particle(mass, pos, v, SVector{2, Float64}(zeros(Float64, 2)), fixed)
 end
 
 function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
@@ -34,7 +34,7 @@ end
 function random_particle() :: Particle
     mass::Float64 = M_EARTH * (rand() + 0.5)
     position::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 4
-    velocity::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 0.2
+    velocity::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 2
     Particle(mass=mass, pos=position, v=velocity)
 end
 

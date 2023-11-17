@@ -30,7 +30,7 @@ struct BHTree
 
         quadrants::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
 
-        if length(particles) == 1
+        if len == 1
             total_mass = first(particles).mass
             centre_of_mass = first(particles).pos
         else
