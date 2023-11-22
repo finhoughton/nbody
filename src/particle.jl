@@ -47,17 +47,17 @@ function random_particles(
     velocity_stddev::Float64
     ) :: Vector{Particle}
 
-    masses = Vector{Float64}(undef, n)
-    positions = Vector{SVector{2, Float64}}(undef, n)
-    velocities = Vector{SVector{2, Float64}}(undef, n)
-
-    randn!(Float64, masses)
+    masses = randn(n)
     map!(x -> abs(x) * mass_stddev + mass_mean, masses)
 
-    rand!(SVector{2, Float64}, positions)
+    x_pos = randn(n)
+    y_pos = randn(n)
+    positions::Vector{SVector{2, Float64}} = map(SVector{2, Float64}, zip(x_pos, y_pos))
     map!(x -> x * edge_len, positions)
 
-    randn!(SVector{2, Float64}, velocities)
+    x_vel = randn(n)
+    y_vel = randn(n)
+    velocities::Vector{SVector{2, Float64}} = map(SVector{2, Float64}, zip(x_vel, y_vel))
     map!(x -> x * velocity_stddev .+ velocity_mean, velocities)
 
     particles::Vector{Particle} = Particle.(masses, positions, velocities)
