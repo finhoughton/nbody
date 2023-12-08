@@ -130,9 +130,15 @@ function test_saving(particles::Vector{Particle})::Nothing
 end
 
 function main()::Nothing
-    # particles::Vector{Particle} = [random_particle() for _ ∈ 1:100]
     particles::Vector{Particle} = []
-    append!(particles, random_particles(n=50, edge_len=EDGE, mass_mean=10.0^24, mass_stddev=10.0^24, velocity_mean=10.0^24, velocity_stddev=0.0))
+    push!(particles, random_particles(
+        n=50,
+        edge_len=EDGE,
+        mass_mean=10.0^24,
+        mass_stddev=10.0^24,
+        velocity_mean=10.0^24,
+        velocity_stddev=0.0
+        ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
     t::Float64 = 0
     while !isempty(particles)

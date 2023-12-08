@@ -19,7 +19,7 @@ function Particle(
 )::Particle
     if mass ≤ 0
         error("particle mass must be positive")
-    elseif fixed && norm(v) ≠ 0
+    elseif fixed norm(v) ≠ 0
         error("fixed is incomaptable with velocity.")
     end
     Particle(mass, pos, v, SVector{2, Float64}(zeros(Float64, 2)), fixed)
@@ -60,5 +60,5 @@ function random_particles(
     velocities::Vector{SVector{2, Float64}} = map(SVector{2, Float64}, zip(x_vel, y_vel))
     map!(x -> x * velocity_stddev .+ velocity_mean, velocities)
 
-    particles::Vector{Particle} = Particle.(masses, positions, velocities)
+    return Particle.(masses, positions, velocities)
 end
