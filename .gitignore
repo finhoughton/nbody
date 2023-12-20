@@ -1,5 +1,5 @@
 /Manifest.toml
-/.DS_Store
 /.vscode
 /save.txt
+.DS_Store
 data

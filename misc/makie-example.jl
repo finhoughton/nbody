@@ -19,7 +19,7 @@ function step!(l::Lorenz)
     l.z += l.dt * dz
     Point3f(l.x, l.y, l.z)
 end
-
+ 
 function main()
     attractor = Lorenz()
 
@@ -39,7 +39,7 @@ function main()
             push!(points[], step!(attractor))
             push!(colors[], frame)
         end
-        ax.azimuth[] = 1.7pi + 0.3 * sin(2pi * frame / 120) # set the view angle of the axis
+        ax.azimuth[] = 2sin(2π * frame / 120) # set the view angle of the axis
         notify(points); notify(colors) # tell points and colors that their value has been updated
         l.colorrange = (0, frame) # update plot attribute directly
     end
