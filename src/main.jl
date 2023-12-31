@@ -32,32 +32,24 @@ end
 # barnes-hut
 function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothing 
     enqueue!(the_q, root)
+    # enqueue the root node
     while !isempty(the_q)
         current::BHTree = dequeue!(the_q)
+        # dequeue a node
         distance_to_centre::Float64 = norm(p.pos - current.centre)
+        # calculate the distance to the centre to be used in MAC calculations
         if current.side_length < MAC * distance_to_centre
+            # the ratio is not greater than the MAC, use this quadrant to appriximate the force on the particle
             p.force_applied += calculate_force(p, current)
         else
+            # the ratio is greater than the MAC, enqueue the current node's children
             from_maybe_with.(
                 nothing,
                 x -> enqueue!(the_q, x),
                 current.children
                 )
+            # enqueueing the children is a bit weird because they are `Maybe`s
         end
-    end
-    nothing
-end
-
-function update_particles!(ps::Vector{Particle})::Nothing
-    for p ∈ ps
-        if not p.fixed
-            a::SVector{2, Float64} = p.force_applied / p.mass
-            dv::SVector{2, Float64} = a * Δt
-            p.v += dv
-            p.pos += p.v * Δt
-        end
-        p.force_applied = SA[0.0, 0.0]
-        # reset `force_applied` after each iteration
     end
     nothing
 end
@@ -65,8 +57,10 @@ end
 # barnes-hut step
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     the_q = Queue{BHTree}()
+    # create the queue used in bh algorithm
     foreach(partial(step_particle!, root, the_q), particles)
-    update_particles!(particles)
+    # foreach used instead of map because the results of the function calls are not needed.
+    foreach(update_particle!, particles)
     nothing
 end
 
@@ -186,17 +180,25 @@ function main()::Nothing
     while !isempty(particles)
         start::DateTime = now()
         root = unsafe_from_just(BHTree(particles, SA[0.0, 0.0], 2 * EDGE))
+        # construct the quadtree
         step!(particles, root)
-        # filter!(p -> maximum(abs, p.pos) < EDGE, particles) # delete offscreen particles
         showparticles(particles)
 
+        # contolling the timings:
+
         timetaken = convert(Millisecond, now() - start)
+        # time taken to compute that frame, in milliseconds
+
         if (v = value(timetaken)) < Δt * 1000
+            # if the timetaken is less that the target delta time
             sleeptime = Δt - v/1000
+            # sleep for the differnce
             println("sleeping for $sleeptime")
             sleep(sleeptime)
+            
         end
         t += Δt
+
     end
     nothing
 end
