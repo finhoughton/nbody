@@ -10,7 +10,7 @@ include("iteration-algorithms.jl")
 
 # order of include():
 # main
-# barnes-hut
+# iteration algorithms
 # particle
 # utils
 
@@ -29,7 +29,8 @@ end
 
 # ------ iteration ------
 
-function step_particle!(p::Particle, root::BHTree, the_q::Queue{BHTree}):: Nothing
+# barnes-hut
+function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothing 
     enqueue!(the_q, root)
     while !isempty(the_q)
         current::BHTree = dequeue!(the_q)
@@ -47,49 +48,68 @@ function step_particle!(p::Particle, root::BHTree, the_q::Queue{BHTree}):: Nothi
     nothing
 end
 
-function step!(particles::Vector{Particle}, root::BHTree)::Nothing
-    the_q = Queue{BHTree}()
-    for p ∈ particles
-        if p.fixed
-            continue
+function update_particles!(ps::Vector{Particle})::Nothing
+    for p ∈ ps
+        if not p.fixed
+            a::SVector{2, Float64} = p.force_applied / p.mass
+            dv::SVector{2, Float64} = a * Δt
+            p.v += dv
+            p.pos += p.v * Δt
         end
-        step_particle!(p, root, the_q)
-        a::SVector{2, Float64} = p.force_applied / p.mass
-        dv::SVector{2, Float64} = a * Δt
-        p.v += dv
-        p.pos += p.v * Δt
         p.force_applied = SA[0.0, 0.0]
-    end
-end
-
-function step!(particles::Vector{Particle})::Nothing
-    for (p, q) ∈ combinations(particles, 2)
-        fp = calculate_force(p, q)
-        p.force_applied += fp
-        q.force_applied += -fp # third law
-    end
-    for p ∈ particles
-        a::SVector{2, Float64} = p.force_applied / p.mass
-        dv::SVector{2, Float64} = a * Δt
-        p.v += dv
-        p.pos += p.v * Δt
-        p.force_applied = SA[0.0, 0.0]
+        # reset `force_applied` after each iteration
     end
     nothing
 end
 
+# barnes-hut step
+function step!(particles::Vector{Particle}, root::BHTree)::Nothing
+    the_q = Queue{BHTree}()
+    foreach(partial(step_particle!, root, the_q), particles)
+    update_particles!(particles)
+    nothing
+end
+
+# direct-sum step
+function step!(particles::Vector{Particle})::Nothing
+    for (p, q) ∈ combinations(particles, 2)
+        # loop through pairwise combinations of particles,
+        # equiallent to 2 for loops and an if statement skipping the case when both for loops give the same particle.
+
+        fp::SVector{2, Float64} = calculate_force(p, q)
+        # calculate the force on p with Newton's formula
+
+        p.force_applied += fp
+        q.force_applied += -fp # Newton's third law
+    end
+    update_particles!(particles)
+    nothing
+end
+ 
 # ----- saving ------
+# these functions are written generically to save and read a vector of any type
 
-const delimiter::String = "   "
+const delimiter::String = ";" # can't use comma because vectors use commas
 
-function save!(file::IOStream, ps::Vector{T}, data::Vector{Int64})::Nothing where {T}
-    push!(data, length(ps))
+function save!(file::IOStream, items::Vector{T}, data::Vector{Int64})::Nothing where {T}
+    push!(data, length(items))
+    # append the number of items to the data
+
     join(file, data, delimiter)
+    # write the data to the file, joined by the delimiter
+
     write(file, "\n")
+    # write a newline between data and the items
+
     fields::Tuple{Vararg{Symbol}} = fieldnames(Particle)
-    for p ∈ ps
-        join(file, [getfield(p, f) for f ∈ fields], delimiter)
+    for item ∈ items
+        join(file, [getfield(item, f) for f ∈ fields], delimiter)
+        # write each attribute of the item to the file, joined by delimiters
+        # have to use comprehension instead of broadcast
+        # because i can't garuntee that `length` will be defined for `item`
+
         write(file, "\n")
+        # write a newline between each item
     end
     nothing
 end
@@ -100,39 +120,54 @@ end
 read data from IOStream as was written by `save!`
 """
 function read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector}
-    (data..., num_particles) = parse.(Int64, tuple(string.(split(readline(stream), delimiter))...))
-    ps::Vector{T} = Vector{T}(undef, num_particles)
+    (data..., num_items) = parse.(Int64, tuple(string.(split(readline(stream), delimiter))...))
+    # reading the data at the top of the file, the last number is always the number of items.
+    # steps to read the numbers:
+    # - read the first line of the file, where the numbers are
+    # - split on delimiters
+    # - convert the numbers to strings (split returns a `Vector` of `SubString`s, which `parse` can't read)
+    # - convert the vector to a tuple
+    # - parse each string in the tuple to an Int64
+    # - unpack those into data and the number of items
+
+    items::Vector{T} = Vector{T}(undef, num_items)
+    # create an empty vector `num_items` long
+
     for (idx, line) ∈ enumerate(eachline(stream))
-        particle = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(T.types, split(line, delimiter))]
-        ps[idx] = Particle(particle...)
+        item_data::Vector = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(T.types, split(line, delimiter))]
+        # `zip(T.types, split(line, delimiter))` matches up the attributes of `T`
+        # to the attributes that were written to the file, split on the delimiter.
+        # example output: `[(Int64, "22"), (String, "John"), (Float64, "89.5")]`
+
+        # `Meta.parse` then parses the string to and expression,
+        # which is then evaluated by `eval`
+        # and then conveted to the type from T.types
+
+        items[idx] = T(item_data...)
+        # item_data then conveted to the type passed in by the caller and put in the vector.
     end
-    (data, ps)
+    return (data, items)
 end
 
 # ----- main function -----
 
-function test_saving(particles::Vector{Particle})::Nothing
+function test_saving(particles::Vector{Particle})::Vector{Particle}
     fp = "data/save.txt"
     file = open(fp, "w")
-    save!(file, particles, [])
+    save!(file, particles, Vector{Int64}())
     close(file)
-    particles
+
     file = open(fp, "r")
     data, ps = read(file, Particle)
     ps::Vector{Particle}
     close(file)
-    for (p1, p2) ∈ zip(ps, particles)
-        println(p1)
-        println(p2)
-        println()
-    end
-    nothing
+    return ps
 end
 
 function main()::Nothing
     particles::Vector{Particle} = []
-    push!(particles, random_particles(
-        n=50,
+    append!(particles, random_particles(
+        n=4,
         edge_len=EDGE,
         mass_mean=10.0^24,
         mass_stddev=10.0^24,
@@ -140,6 +175,13 @@ function main()::Nothing
         velocity_stddev=0.0
         ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
+
+    # println(particles)
+    # ps2 = test_saving(particles)
+    # println()
+    # println(ps2)
+    # println(particles == ps2)
+
     t::Float64 = 0
     while !isempty(particles)
         start::DateTime = now()

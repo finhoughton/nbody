@@ -1,4 +1,5 @@
 include("utils/maybe.jl")
+include("utils/partial.jl")
 
 # ----- constants -----
 
