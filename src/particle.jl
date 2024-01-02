@@ -42,15 +42,7 @@ function update_particle!(p::Particle)::Nothing
     nothing
 end
 
-# ----- creaing particles -----
-
-function random_particle() :: Particle
-    mass::Float64 = M_EARTH * (rand() + 0.5)
-    position::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 4
-    velocity::SVector{2, Float64} = SA[rand() - 0.5, rand() - 0.5] * DIST * 2
-    Particle(mass=mass, pos=position, v=velocity)
-end
-
+# this function is described in the pseudocode section of the design
 function random_particles(
     ;n::Int64,
     edge_len::Float64,
@@ -73,3 +65,4 @@ function random_particles(
 
     return Particle.(masses, positions, velocities)
 end
+
