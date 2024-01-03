@@ -100,7 +100,7 @@ function save!(file::IOStream, items::Vector{T}, data::Vector{Int64})::Nothing w
         join(file, [getfield(item, f) for f ∈ fields], delimiter)
         # write each attribute of the item to the file, joined by delimiters
         # have to use comprehension instead of broadcast
-        # because i can't garuntee that `length` will be defined for `item`
+        # because `length` may not be defined for `item`
 
         write(file, "\n")
         # write a newline between each item
@@ -117,9 +117,9 @@ function read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector
     (data..., num_items) = parse.(Int64, tuple(string.(split(readline(stream), delimiter))...))
     # reading the data at the top of the file, the last number is always the number of items.
     # steps to read the numbers:
-    # - read the first line of the file, where the numbers are
-    # - split on delimiters
-    # - convert the numbers to strings (split returns a `Vector` of `SubString`s, which `parse` can't read)
+    # - read the first line of the file, where the numbers are, to a string
+    # - split the string on delimiters to a `Vector` of `SubString`s
+    # - convert the vector of substrings to a vector of strings
     # - convert the vector to a tuple
     # - parse each string in the tuple to an Int64
     # - unpack those into data and the number of items
