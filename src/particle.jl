@@ -30,13 +30,20 @@ Particle(mass::Float64, pos::SVector{2, Float64}, v::SVector{2, Float64}) = Part
 function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
     normalize(q.pos - p.pos) * G * p.mass * (q.mass * inv(EPS_SOFTENING + norm(p.pos - q.pos) ^ 2))
 end
-
+# iterate the particle's velocity and position
 function update_particle!(p::Particle)::Nothing
     if not p.fixed
         a::SVector{2, Float64} = p.force_applied / p.mass # F = ma
         dv::SVector{2, Float64} = a * Δt
+
+        old_v = p.v
         p.v += dv
-        p.pos += p.v * Δt
+        new_v = p.v
+
+        # use trapezium approximation for displacement
+        Δpos = 0.5 * Δt * (old_v + new_v)
+
+        p.pos += Δpos
     end 
     p.force_applied = SA{Float64}[0.0, 0.0]
     nothing
