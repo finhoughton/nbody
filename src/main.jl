@@ -1,10 +1,10 @@
 using LinearAlgebra
 using StaticArrays
 using Dates: now, value, DateTime, Millisecond
-using Plots
 using Combinatorics: combinations
 using Random
-gr()
+using Makie
+using ParitalFunctions
 
 include("iteration-algorithms.jl")
 
@@ -15,17 +15,18 @@ include("iteration-algorithms.jl")
 # utils
 
 # ------ displaying ------
-
-function showparticles(particles::Vector{Particle})::Nothing
-    positions::Vector{Vector{Float64}} = [p.pos for p in particles]
-    xs::Vector{Float64} = getindex.(positions, 1)
-    ys::Vector{Float64} = getindex.(positions, 2)
-    p::Plots.Plot = scatter(xs, ys, legend=false, showaxis=false, background_colour=:black)
-    xlims!(p, X_LIMITS...)
-    ylims!(p, Y_LIMITS...)
-    display(p)
-    nothing
-end
+# using Plots
+# gr()
+# function showparticles(particles::Vector{Particle})::Nothing
+#     positions::Vector{Vector{Float64}} = [p.pos for p in particles]
+#     xs::Vector{Float64} = getindex.(positions, 1)
+#     ys::Vector{Float64} = getindex.(positions, 2)
+#     p::Plots.Plot = scatter(xs, ys, legend=false, showaxis=false, background_colour=:black)
+#     xlims!(p, X_LIMITS...)
+#     ylims!(p, Y_LIMITS...)
+#     display(p)
+#     nothing
+# end
 
 # ------ iteration ------
 
@@ -43,11 +44,7 @@ function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothin
             p.force_applied += calculate_force(p, current)
         else
             # the ratio is greater than the MAC, enqueue the current node's children
-            from_maybe_with.(
-                nothing,
-                x -> enqueue!(the_q, x),
-                current.children
-                )
+            foreach(from_maybe_with $ (nothing, x -> enqueue!(the_q, x)), current.children)
             # enqueueing the children is a bit weird because they are `Maybe`s
         end
     end
@@ -85,6 +82,8 @@ end
 
 const delimiter::String = ";" # can't use comma because vectors use commas
 
+split_delim(l) = split(l, delimiter)
+
 function save!(file::IOStream, items::Vector{T}, data::Vector{Int64})::Nothing where {T}
     push!(data, length(items))
     # append the number of items to the data
@@ -114,26 +113,25 @@ end
 read data from IOStream as was written by `save!`
 """
 function read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector}
-    (data..., num_items) = parse.(Int64, tuple(string.(split(readline(stream), delimiter))...))
+    (data..., num_items) = stream |> readline |> split_delim |> broadcast $ (parse, Int64) |> Tuple
     # reading the data at the top of the file, the last number is always the number of items.
     # steps to read the numbers:
     # - read the first line of the file, where the numbers are, to a string
-    # - split the string on delimiters to a `Vector` of `SubString`s
-    # - convert the vector of substrings to a vector of strings
-    # - convert the vector to a tuple
-    # - parse each string in the tuple to an Int64
+    # - split the string on delimiters
+    # - parse each substring  to an Int64
+    # - convert to a tuple
     # - unpack those into data and the number of items
 
     items::Vector{T} = Vector{T}(undef, num_items)
     # create an empty vector `num_items` long
 
     for (idx, line) ∈ enumerate(eachline(stream))
-        item_data::Vector = [type(eval(Meta.parse(data))) for (type, data) ∈ zip(T.types, split(line, delimiter))]
-        # `zip(T.types, split(line, delimiter))` matches up the attributes of `T`
-        # to the attributes that were written to the file, split on the delimiter.
+        item_data::Vector = [(data |> Meta.parse |> eval |> type) for (type, data) ∈ (line |> split_delim |> zip $ T.types)]
+        # `line |> split_delim |> zip $ T.types` splits the line on delimiters
+        # then matches up the attributes of `T` to the attributes that were written to the file
         # example output: `[(Int64, "22"), (String, "John"), (Float64, "89.5")]`
 
-        # `Meta.parse` then parses the string to and expression,
+        # `Meta.parse` then parses the string to an expression,
         # which is then evaluated by `eval`
         # and then conveted to the type from T.types
 
@@ -141,6 +139,23 @@ function read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector
         # item_data then conveted to the type passed in by the caller and put in the vector.
     end
     return (data, items)
+end
+
+# ----- GUI -----
+
+function update_plot!(scene::Makie.FigureAxisPlot, particles::Vector{Particle})::Nothing
+    x = [particle.pos[1] for particle in particles]
+    y = [particle.pos[2] for particle in particles]
+    scene[:x] .= x
+    scene[:y] .= y
+end
+
+
+function create_gui(particles::Vector{Particle})::Makie.FigureAxisPlot
+    scatter([particle.pos[1] for particle in particles],
+                    [particle.pos[2] for particle in particles],
+                    markersize=[particle.mass * 10 for particle in particles])
+
 end
 
 # ----- main function -----
@@ -170,36 +185,38 @@ function main()::Nothing
         ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
 
-    # println(particles)
-    # ps2 = test_saving(particles)
-    # println()
-    # println(ps2)
-    # println(particles == ps2)
+    println(particles)
+    ps2 = test_saving(particles)
+    println()
+    println(ps2)
+    println(particles == ps2)
 
-    t::Float64 = 0
-    while !isempty(particles)
-        start::DateTime = now()
-        root = unsafe_from_just(BHTree(particles, SA[0.0, 0.0], 2 * EDGE))
-        # construct the quadtree
-        step!(particles, root)
-        showparticles(particles)
+    # t::Float64 = 0
+    # gui = create_gui(particles)
+    # while true
+    #     start::DateTime = now()
+    #     root = unsafe_from_just(BHTree(particles, SA[0.0, 0.0], 2 * EDGE))
+    #     # construct the quadtree
+    #     step!(particles, root)
+    #     update_plot!(gui, particles)
+    #     # showparticles(particles)
 
-        # contolling the timings:
+    #     # contolling the timings:
+  
+    #     timetaken = convert(Millisecond, now() - start)
+    #     # time taken to compute that frame, in milliseconds
 
-        timetaken = convert(Millisecond, now() - start)
-        # time taken to compute that frame, in milliseconds
-
-        if (v = value(timetaken)) < Δt * 1000
-            # if the timetaken is less that the target delta time
-            sleeptime = Δt - v/1000
-            # sleep for the differnce
-            println("sleeping for $sleeptime")
-            sleep(sleeptime)
+    #     if (v = value(timetaken)) < Δt * 1000
+    #         # if the timetaken is less that the target delta time
+    #         sleeptime = Δt - v/1000
+    #         # sleep for the differnce
+    #         println("sleeping for $sleeptime")
+    #         sleep(sleeptime)
             
-        end
-        t += Δt
+    #     end
+    #     t += Δt
 
-    end
+    # end
     nothing
 end
 

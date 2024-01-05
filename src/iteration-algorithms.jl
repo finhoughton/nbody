@@ -57,6 +57,7 @@ struct BHTree
         children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)])
         return Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))
     end
+end
 
 function push_to_quadrant!(
     nws::Vector{Particle},

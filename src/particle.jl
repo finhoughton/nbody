@@ -32,7 +32,7 @@ function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
 end
 # iterate the particle's velocity and position
 function update_particle!(p::Particle)::Nothing
-    if not p.fixed
+    if !p.fixed
         a::SVector{2, Float64} = p.force_applied / p.mass # F = ma
         dv::SVector{2, Float64} = a * Δt
 
