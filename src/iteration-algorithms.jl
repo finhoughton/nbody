@@ -24,6 +24,8 @@ struct BHTree
         
         len = length(particles)
 
+        println("length is $len")
+
         if len == 0
             return nothing
         end
@@ -34,15 +36,17 @@ struct BHTree
             total_mass = first(particles).mass
             centre_of_mass = first(particles).pos
         else
+
             # centre of mass = (m_1r_1 + m_2r_2 + ...)/(m_1 + m_2 + ...)
             total_mass::Float64 = 0
-            total::SVector{2, Float64} = SA{Float64}[0.0, 0.0]
+            total::SVector{2, Float64} = SA[0.0, 0.0]
             for particle ∈ particles
                 total_mass += particle.mass
                 total += particle.pos * particle.mass
                 push_to_quadrant!(quadrants..., particle, centre)
             end
             centre_of_mass::SVector{2, Float64} = total / total_mass
+
         end
 
         half_side_len::Float64 = 0.5 * side_length

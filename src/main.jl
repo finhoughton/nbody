@@ -3,8 +3,8 @@ using StaticArrays
 using Dates: now, value, DateTime, Millisecond
 using Combinatorics: combinations
 using Random
-using Makie
-using ParitalFunctions
+using GLMakie
+using PartialFunctions
 
 include("iteration-algorithms.jl")
 
@@ -55,7 +55,7 @@ end
 function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     the_q = Queue{BHTree}()
     # create the queue used in bh algorithm
-    foreach(partial(step_particle!, root, the_q), particles)
+    foreach(step_particle! $ (root, the_q), particles)
     # foreach used instead of map because the results of the function calls are not needed.
     foreach(update_particle!, particles)
     nothing
@@ -96,9 +96,9 @@ function save!(file::IOStream, items::Vector{T}, data::Vector{Int64})::Nothing w
 
     fields::Tuple{Vararg{Symbol}} = fieldnames(Particle)
     for item ∈ items
-        join(file, [getfield(item, f) for f ∈ fields], delimiter)
+        join(file, map(getfield $ item, fields), delimiter)
         # write each attribute of the item to the file, joined by delimiters
-        # have to use comprehension instead of broadcast
+        # have to use map instead of broadcast
         # because `length` may not be defined for `item`
 
         write(file, "\n")
@@ -107,13 +107,8 @@ function save!(file::IOStream, items::Vector{T}, data::Vector{Int64})::Nothing w
     nothing
 end
 
-"""
-    read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector{T}}
-
-read data from IOStream as was written by `save!`
-"""
-function read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector}
-    (data..., num_items) = stream |> readline |> split_delim |> broadcast $ (parse, Int64) |> Tuple
+function read!(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector}
+    (data..., num_items) = stream |> readline |> split_delim |> (x -> parse.(Int64, x)) |> Tuple
     # reading the data at the top of the file, the last number is always the number of items.
     # steps to read the numbers:
     # - read the first line of the file, where the numbers are, to a string
@@ -141,23 +136,6 @@ function read(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vector
     return (data, items)
 end
 
-# ----- GUI -----
-
-function update_plot!(scene::Makie.FigureAxisPlot, particles::Vector{Particle})::Nothing
-    x = [particle.pos[1] for particle in particles]
-    y = [particle.pos[2] for particle in particles]
-    scene[:x] .= x
-    scene[:y] .= y
-end
-
-
-function create_gui(particles::Vector{Particle})::Makie.FigureAxisPlot
-    scatter([particle.pos[1] for particle in particles],
-                    [particle.pos[2] for particle in particles],
-                    markersize=[particle.mass * 10 for particle in particles])
-
-end
-
 # ----- main function -----
 
 function test_saving(particles::Vector{Particle})::Vector{Particle}
@@ -173,7 +151,13 @@ function test_saving(particles::Vector{Particle})::Vector{Particle}
     return ps
 end
 
+function step_gui!(positions::Observable{Vector{SVector{2, Float64}}}, particles::Vector{Particle})::Nothing
+    positions[] = [p.pos for p ∈ particles]
+end
+
 function main()::Nothing
+
+    # adding some particles
     particles::Vector{Particle} = []
     append!(particles, random_particles(
         n=4,
@@ -185,38 +169,67 @@ function main()::Nothing
         ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
 
-    println(particles)
-    ps2 = test_saving(particles)
-    println()
-    println(ps2)
-    println(particles == ps2)
+    t::Float64 = 0
 
-    # t::Float64 = 0
-    # gui = create_gui(particles)
-    # while true
-    #     start::DateTime = now()
-    #     root = unsafe_from_just(BHTree(particles, SA[0.0, 0.0], 2 * EDGE))
-    #     # construct the quadtree
-    #     step!(particles, root)
-    #     update_plot!(gui, particles)
-    #     # showparticles(particles)
+    # -- GUI setup -- 
 
-    #     # contolling the timings:
+    fig = Figure()
+    display(fig)
+
+    ax = Axis(fig[1, 1])
+
+    positions::Observable{Vector{SVector{2, Float64}}} = Observable([p.pos for p ∈ particles])
+    scatter!(ax, positions; color=:blue, marker=:circle, markersize=2)
+    ax.title = "Unititled Simulation"
+    xlims!(ax, -EDGE, EDGE)
+    ylims!(ax, -EDGE, EDGE)
+
+    # -- start/stop button --
+
+    start_stop = Button(fig[2,1]; label = "start/stop", tellwidth = false)
+
+    is_running = Observable(false)
+
+    on(start_stop.clicks) do clicks
+        is_running[] = !is_running[] # switch to state of is_running
+    end
+
+    on(start_stop.clicks) do clicks
+        @async while is_running[]
+            isopen(fig.scene) || break # stop computations if closed window
+            step_gui!(positions, particles)
+            yield()
+        end
+    end
+
+    # -- main loop -- 
+
+    while true
+        start::DateTime = now()
+
+        root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
+        # construct the quadtree
+        step!(particles, root)
+        # showparticles(particles)
+
+
+
+        # contolling the timings:
   
-    #     timetaken = convert(Millisecond, now() - start)
-    #     # time taken to compute that frame, in milliseconds
+        timetaken = convert(Millisecond, now() - start)
+        # time taken to compute that frame, in milliseconds
 
-    #     if (v = value(timetaken)) < Δt * 1000
-    #         # if the timetaken is less that the target delta time
-    #         sleeptime = Δt - v/1000
-    #         # sleep for the differnce
-    #         println("sleeping for $sleeptime")
-    #         sleep(sleeptime)
+        if (v = value(timetaken)) < Δt * 1000
+            # if the timetaken is less that the target delta time
+            sleeptime = Δt - v/1000
+            # sleep for the differnce
+            println("sleeping for $sleeptime")
+            sleep(sleeptime)
             
-    #     end
-    #     t += Δt
+        end
+        t += Δt
 
-    # end
+    end
     nothing
 end
 

@@ -7,14 +7,15 @@ mutable struct Particle
     mass::Float64
     pos::SVector{2, Float64}
     v::SVector{2, Float64}
+    previous_force_applied::SVector{2, Float64}
     force_applied::SVector{2, Float64}
     fixed::Bool
 end
 
 function Particle(
     ;mass::Float64,
-    pos::SVector{2, Float64}=SVector{2, Float64}(zeros(Float64, 2)),
-    v::SVector{2, Float64}=SVector{2, Float64}(zeros(Float64, 2)),
+    pos::SVector{2, Float64}=SA[0.0, 0.0],
+    v::SVector{2, Float64}=SA[0.0, 0.0],
     fixed::Bool=false
 )::Particle
     if mass ≤ 0
@@ -22,7 +23,7 @@ function Particle(
     elseif fixed && norm(v) ≠ 0
         error("fixed is incomaptable with velocity.")
     end
-    Particle(mass, pos, v, SVector{2, Float64}(zeros(Float64, 2)), fixed)
+    Particle(mass, pos, v, SA[0.0, 0.0], SA[0.0, 0.0], fixed)
 end
 
 Particle(mass::Float64, pos::SVector{2, Float64}, v::SVector{2, Float64}) = Particle(mass=mass, pos=pos, v=v, fixed=false)
@@ -30,22 +31,25 @@ Particle(mass::Float64, pos::SVector{2, Float64}, v::SVector{2, Float64}) = Part
 function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
     normalize(q.pos - p.pos) * G * p.mass * (q.mass * inv(EPS_SOFTENING + norm(p.pos - q.pos) ^ 2))
 end
+
 # iterate the particle's velocity and position
 function update_particle!(p::Particle)::Nothing
+    # area of a trapezium = (a + b) * h / 2
     if !p.fixed
-        a::SVector{2, Float64} = p.force_applied / p.mass # F = ma
-        dv::SVector{2, Float64} = a * Δt
+        # using trapezium approximation for impulse (I). I = ∫F dt
+        impulse::SVector{2, Float64} = 0.5 * Δt * (p.previous_force_applied + p.force_applied)
+        Δv::SVector{2, Float64} = impulse / p.mass 
 
         old_v = p.v
-        p.v += dv
+        p.v += Δv
         new_v = p.v
 
-        # use trapezium approximation for displacement
-        Δpos = 0.5 * Δt * (old_v + new_v)
-
-        p.pos += Δpos
+        # use trapezium approximation for displacement (s). s = ∫v dt
+        Δs = 0.5 * Δt * (old_v + new_v)
+        p.pos += Δs
     end 
-    p.force_applied = SA{Float64}[0.0, 0.0]
+    p.previous_force_applied = p.force_applied
+    p.force_applied = SA[0.0, 0.0]
     nothing
 end
 

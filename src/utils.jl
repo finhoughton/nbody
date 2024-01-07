@@ -3,9 +3,9 @@ include("utils/partial.jl")
 
 # ----- constants -----
 
-const FPS::Int64 = 50
+const UPS::Int64 = 50
 
-const Δt::Float64 = 1/FPS
+const Δt::Float64 = 1/UPS
 
 const M_EARTH::Float64 = 6e22
 
