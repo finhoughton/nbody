@@ -169,6 +169,10 @@ function main()::Nothing
         ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
 
+    for (i, p) ∈ enumerate(particles)
+        p.id = i
+    end
+
     t::Float64 = 0
 
     # -- GUI setup -- 
@@ -203,10 +207,11 @@ function main()::Nothing
     end
 
     # -- main loop -- 
-
+    i = 0
     while true
         start::DateTime = now()
-
+        println("i $i")
+        i += 1
         root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
         # construct the quadtree
         step!(particles, root)

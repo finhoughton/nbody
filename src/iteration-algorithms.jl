@@ -19,12 +19,14 @@ struct BHTree
     function BHTree(
         particles::Vector{Particle},
         centre::SVector{2, Float64},
-        side_length::Float64
+        side_length::Float64,
+        depth::Int = 1
     )::Maybe{BHTree}
         
         len = length(particles)
 
-        println("length is $len")
+        ids = [p.id for p in particles]
+        println("length is $len, particles $ids, side length $side_length, depth $depth")
 
         if len == 0
             return nothing
@@ -35,6 +37,7 @@ struct BHTree
         if len == 1
             total_mass = first(particles).mass
             centre_of_mass = first(particles).pos
+            children = SVector{4, Maybe{BHTree}}([nothing, nothing, nothing, nothing])
         else
 
             # centre of mass = (m_1r_1 + m_2r_2 + ...)/(m_1 + m_2 + ...)
@@ -46,19 +49,19 @@ struct BHTree
                 push_to_quadrant!(quadrants..., particle, centre)
             end
             centre_of_mass::SVector{2, Float64} = total / total_mass
+            half_side_len::Float64 = 0.5 * side_length
+            quarter_side_len::Float64 = 0.5 * half_side_len 
+            centres = (
+                centre + SVector(-quarter_side_len, quarter_side_len),  # NW
+                centre + SVector(quarter_side_len, quarter_side_len),   # NE
+                centre + SVector(-quarter_side_len, -quarter_side_len), # SW
+                centre + SVector(quarter_side_len, -quarter_side_len))  # SE
 
+                # recurive call creating the 4 children if there are more than 1 particle
+                children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len, depth + 1) for (quad, quad_centre) ∈ zip(quadrants, centres)])
         end
 
-        half_side_len::Float64 = 0.5 * side_length
-        quarter_side_len::Float64 = 0.5 * half_side_len 
-        centres = (
-            centre + SVector(-quarter_side_len, quarter_side_len),  # NW
-            centre + SVector(quarter_side_len, quarter_side_len),   # NE
-            centre + SVector(-quarter_side_len, -quarter_side_len), # SW
-            centre + SVector(quarter_side_len, -quarter_side_len))  # SE
 
-        # recurive call creating the 4 children
-        children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)])
         return Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))
     end
 end

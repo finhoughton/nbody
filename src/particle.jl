@@ -2,8 +2,8 @@ using StaticArrays
 using LinearAlgebra
 
 include("utils.jl")
-
 mutable struct Particle
+    id::Int
     mass::Float64
     pos::SVector{2, Float64}
     v::SVector{2, Float64}
@@ -11,6 +11,7 @@ mutable struct Particle
     force_applied::SVector{2, Float64}
     fixed::Bool
 end
+
 
 function Particle(
     ;mass::Float64,
@@ -23,7 +24,7 @@ function Particle(
     elseif fixed && norm(v) ≠ 0
         error("fixed is incomaptable with velocity.")
     end
-    Particle(mass, pos, v, SA[0.0, 0.0], SA[0.0, 0.0], fixed)
+    Particle(-1, mass, pos, v, SA[0.0, 0.0], SA[0.0, 0.0], fixed)
 end
 
 Particle(mass::Float64, pos::SVector{2, Float64}, v::SVector{2, Float64}) = Particle(mass=mass, pos=pos, v=v, fixed=false)
