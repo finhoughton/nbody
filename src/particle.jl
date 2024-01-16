@@ -2,6 +2,7 @@ using StaticArrays
 using LinearAlgebra
 
 include("utils.jl")
+
 mutable struct Particle
     id::Int
     mass::Float64
@@ -64,8 +65,8 @@ function random_particles(
     velocity_stddev::Float64
     ) :: Vector{Particle}
 
-    masses::Vector{Float64} = map(x -> abs(x) * mass_stddev + mass_mean, randn(n))
-    # take absolute value because can't have negative mass
+    masses::Vector{Float64} = map(x -> abs(x) * mass_stddev + mass_mean + 1, randn(n))
+    # take absolute value because can't have negative mass, add 1kg to avoid 0 mass
 
     x_pos::Vector{Float64} = randn(n)
     y_pos::Vector{Float64} = randn(n)

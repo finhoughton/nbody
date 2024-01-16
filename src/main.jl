@@ -30,11 +30,18 @@ include("iteration-algorithms.jl")
 
 # ------ iteration ------
 
+
+
 # barnes-hut
 function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothing 
-    enqueue!(the_q, root)
+    function my_enqueue!(x)
+        println("enqueuing $x")
+        enqueue!(the_q, x)
+    end
+    my_enqueue!(root)
     # enqueue the root node
     while !isempty(the_q)
+        println("the_q $the_q")
         current::BHTree = dequeue!(the_q)
         # dequeue a node
         distance_to_centre::Float64 = norm(p.pos - current.centre)
@@ -44,7 +51,7 @@ function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothin
             p.force_applied += calculate_force(p, current)
         else
             # the ratio is greater than the MAC, enqueue the current node's children
-            foreach(from_maybe_with $ (nothing, x -> enqueue!(the_q, x)), current.children)
+            foreach(from_maybe_with $ (nothing, my_enqueue!), current.children)
             # enqueueing the children is a bit weird because they are `Maybe`s
         end
     end
@@ -57,7 +64,11 @@ function step!(particles::Vector{Particle}, root::BHTree)::Nothing
     # create the queue used in bh algorithm
     foreach(step_particle! $ (root, the_q), particles)
     # foreach used instead of map because the results of the function calls are not needed.
+    f = [p.force_applied for p in particles]
+    println("before update_particle!, $f")
     foreach(update_particle!, particles)
+    f = [p.force_applied for p in particles]
+    println("after update_particle!, $f")
     nothing
 end
 
@@ -160,7 +171,7 @@ function main()::Nothing
     # adding some particles
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=4,
+        n=1,
         edge_len=EDGE,
         mass_mean=10.0^24,
         mass_stddev=10.0^24,
@@ -200,7 +211,7 @@ function main()::Nothing
 
     on(start_stop.clicks) do clicks
         @async while is_running[]
-            isopen(fig.scene) || break # stop computations if closed window
+            isopen(fig.scene) || break # stop calculations if closed window
             step_gui!(positions, particles)
             yield()
         end
@@ -211,10 +222,17 @@ function main()::Nothing
     while true
         start::DateTime = now()
         println("i $i")
+        for p ∈ particles
+            println(p.pos)
+        end
         i += 1
         root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
         # construct the quadtree
+        f = [p.force_applied for p in particles]
+        println("just after bhtree, $f")
         step!(particles, root)
+        f = [p.force_applied for p in particles]
+        println("just after step, $f")
         # showparticles(particles)
 
 

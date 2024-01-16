@@ -35,8 +35,8 @@ struct BHTree
         quadrants::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
 
         if len == 1
-            total_mass = first(particles).mass
-            centre_of_mass = first(particles).pos
+            total_mass = only(particles).mass
+            centre_of_mass = only(particles).pos
             children = SVector{4, Maybe{BHTree}}([nothing, nothing, nothing, nothing])
         else
 
@@ -64,6 +64,10 @@ struct BHTree
 
         return Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))
     end
+end
+
+function string(x::BHTree)
+    "BHTree[$(len(x.particles)) particles, centre $(x.centre), $(len(x.children)) children]"
 end
 
 function push_to_quadrant!(
