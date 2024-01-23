@@ -34,6 +34,10 @@ function calculate_force(p::Particle, q::Particle)::SVector{2, Float64}
     normalize(q.pos - p.pos) * G * p.mass * (q.mass * inv(EPS_SOFTENING + norm(p.pos - q.pos) ^ 2))
 end
 
+function Base.:(==)(p::Particle, q::Particle)::Bool
+    p.id == q.id
+end
+
 # iterate the particle's velocity and position
 function update_particle!(p::Particle)::Nothing
     # area of a trapezium = (a + b) * h / 2

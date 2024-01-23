@@ -89,4 +89,14 @@ function lift(func)
     end
 end
 
+
+"""
+    drop_nothings(xs::Any)::Vector
+
+remove nothings from a vector, keeping only the values inside `Maybe`s
+"""
+function drop_nothings(xs::Any)::Vector
+    [x.__v for x ∈ xs if is_something(x)]
+end
+
 nothing

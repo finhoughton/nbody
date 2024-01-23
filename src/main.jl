@@ -46,13 +46,15 @@ function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothin
         # dequeue a node
         distance_to_centre::Float64 = norm(p.pos - current.centre)
         # calculate the distance to the centre to be used in MAC calculations
-        if current.side_length < MAC * distance_to_centre
+        children = drop_nothings(current.children)
+        if current.side_length < MAC * distance_to_centre || isempty(children)
             # the ratio is not greater than the MAC, use this quadrant to appriximate the force on the particle
-            p.force_applied += calculate_force(p, current)
+            if length(current.particles) != 1 || only(current.particles) != p
+                p.force_applied += calculate_force(p, current)
+            end
         else
             # the ratio is greater than the MAC, enqueue the current node's children
-            foreach(from_maybe_with $ (nothing, my_enqueue!), current.children)
-            # enqueueing the children is a bit weird because they are `Maybe`s
+            my_enqueue!.(children)
         end
     end
     nothing
@@ -171,7 +173,7 @@ function main()::Nothing
     # adding some particles
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=1,
+        n=5,
         edge_len=EDGE,
         mass_mean=10.0^24,
         mass_stddev=10.0^24,

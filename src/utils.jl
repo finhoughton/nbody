@@ -2,7 +2,7 @@ include("utils/maybe.jl")
 
 # ----- constants -----
 
-const UPS::Int64 = 1
+const UPS::Int64 = 50
 
 const Δt::Float64 = 1/UPS
 
@@ -19,4 +19,4 @@ const EPS_SOFTENING::Float64 = 1e8
 const EDGE::Float64 = 10 * DIST
 
 const X_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
-const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE)
+const Y_LIMITS::Tuple{Float64, Float64} = (-EDGE, EDGE

@@ -66,9 +66,12 @@ struct BHTree
     end
 end
 
-function string(x::BHTree)
-    "BHTree[$(len(x.particles)) particles, centre $(x.centre), $(len(x.children)) children]"
+function Base.show(io::IO, x::BHTree)
+    num_childs = length(filter((x -> x ≢ nothing), x.children))
+    return print(io, "BHTree($(length(x.particles)) particles, centre $(x.centre), $(num_childs) children)")
 end
+
+in(p::Particle, b::BHTree) = p in b.particles
 
 function push_to_quadrant!(
     nws::Vector{Particle},
@@ -100,5 +103,9 @@ end
 
 
 function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
-    normalize(node.centre_of_mass - p.pos) * G * p.mass * (node.total_mass * inv(EPS_SOFTENING + norm(p.pos - node.centre_of_mass) ^ 2))
+    dinv = inv(EPS_SOFTENING + norm(p.pos - node.centre_of_mass) ^ 2)
+    unit_v = normalize(node.centre_of_mass - p.pos) 
+    F = unit_v * G * p.mass * (node.total_mass * dinv)
+    println("force is $F")
+    F
 end
