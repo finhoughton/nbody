@@ -28,11 +28,19 @@ struct BHTree
         ids = [p.id for p in particles]
         println("length is $len, particles $ids, side length $side_length, depth $depth")
 
+        if side_length == 0
+            error("0 length")
+        end
+
         if len == 0
             return nothing
         end
 
         quadrants::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
+
+        if depth == 2
+            1 + 1
+        end
 
         if len == 1
             total_mass = only(particles).mass
@@ -61,13 +69,12 @@ struct BHTree
                 children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len, depth + 1) for (quad, quad_centre) ∈ zip(quadrants, centres)])
         end
 
-
         return Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))
     end
 end
 
 function Base.show(io::IO, x::BHTree)
-    num_childs = length(filter((x -> x ≢ nothing), x.children))
+    num_childs = length(filter((x -> is_something(x)), x.children))
     return print(io, "BHTree($(length(x.particles)) particles, centre $(x.centre), $(num_childs) children)")
 end
 
@@ -86,19 +93,23 @@ function push_to_quadrant!(
         # it is west of the centre
         if p.pos[2] >= c[2]
             push!(nws, p)
+            return nothing
         else
             push!(sws, p)
+            return nothing
         end
 
     else
         # it is east of the centre
         if p.pos[2] >= c[2]
             push!(nes, p)
+            return nothing
         else
             push!(ses, p)
+            return nothing
         end
     end
-    nothing
+    error("not pushed to vector")
 end
 
 

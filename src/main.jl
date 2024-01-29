@@ -173,12 +173,12 @@ function main()::Nothing
     # adding some particles
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=5,
+        n=3,
         edge_len=EDGE,
         mass_mean=10.0^24,
         mass_stddev=10.0^24,
         velocity_mean=10.0^24,
-        velocity_stddev=0.0
+        velocity_stddev=10.0^24,
         ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
 
