@@ -5,6 +5,7 @@ using Combinatorics: combinations
 using Random
 using GLMakie
 using PartialFunctions
+using Base.Threads
 
 include("iteration-algorithms.jl")
 
@@ -29,8 +30,6 @@ include("iteration-algorithms.jl")
 # end
 
 # ------ iteration ------
-
-
 
 # barnes-hut
 function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothing 
@@ -86,10 +85,10 @@ function step!(particles::Vector{Particle})::Nothing
         p.force_applied += fp
         q.force_applied += -fp # Newton's third law
     end
-    update_particles!(particles)
+    update_particle!.(particles)
     nothing
 end
- 
+
 # ----- saving ------
 # these functions are written generically to save and read a vector of any type
 
@@ -165,7 +164,18 @@ function test_saving(particles::Vector{Particle})::Vector{Particle}
 end
 
 function step_gui!(positions::Observable{Vector{SVector{2, Float64}}}, particles::Vector{Particle})::Nothing
+    # root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
+    # step!(particles, root)
+    step!(particles)
     positions[] = [p.pos for p ∈ particles]
+    if (v = value(timetaken)) < Δt * 1000
+        # if the timetaken is less that the target delta time
+        sleeptime = Δt - v/1000
+        # sleep for the differnce
+        println("sleeping for $sleeptime")
+        sleep(sleeptime)
+        
+    end
 end
 
 function main()::Nothing
@@ -176,9 +186,9 @@ function main()::Nothing
         n=3,
         edge_len=EDGE,
         mass_mean=10.0^24,
-        mass_stddev=10.0^24,
-        velocity_mean=10.0^24,
-        velocity_stddev=10.0^24,
+        mass_stddev=10.0^23,
+        velocity_mean=0.0,
+        velocity_stddev=10.0^23,
         ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
 
@@ -187,6 +197,7 @@ function main()::Nothing
     end
 
     t::Float64 = 0
+    iteration_number::Int64 = 0
 
     # -- GUI setup -- 
 
@@ -203,57 +214,50 @@ function main()::Nothing
 
     # -- start/stop button --
 
-    start_stop = Button(fig[2,1]; label = "start/stop", tellwidth = false)
+    # start_stop = Button(fig[2,1]; label = "start/stop", tellwidth = false)
 
+    # is_running = Observable(false)
+
+    # on(start_stop.clicks) do clicks
+    #     is_running[] = !is_running[] # switch to state of is_running
+    # end
+
+    # on(start_stop.clicks) do clicks
+    #     @async begin
+    #         while is_running[]
+    #             # isopen(fig.scene) || break # stop calculations if closed window
+    #             iteration_number += 1
+    #             step_gui!(positions, particles)
+    #         end
+    #     end
+    # end
+
+    start_stop = Button(fig[2, 1]; label = "start/stop", tellwidth = false)
+    
     is_running = Observable(false)
-
-    on(start_stop.clicks) do clicks
-        is_running[] = !is_running[] # switch to state of is_running
+    
+    function update_callback(t)
+        iteration_number += 1
+        step_gui!(positions, particles)
     end
-
+    
     on(start_stop.clicks) do clicks
-        @async while is_running[]
-            isopen(fig.scene) || break # stop calculations if closed window
-            step_gui!(positions, particles)
-            yield()
+        is_running[] = !is_running[] # switch to the state of is_running
+        
+        if is_running[]
+            global timer
+            timer = Timer(update_callback, 0, interval=0.1)
+        else
+            close(timer)
         end
     end
+    
+    
+    
 
-    # -- main loop -- 
-    i = 0
     while true
-        start::DateTime = now()
-        println("i $i")
-        for p ∈ particles
-            println(p.pos)
-        end
-        i += 1
-        root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
-        # construct the quadtree
-        f = [p.force_applied for p in particles]
-        println("just after bhtree, $f")
-        step!(particles, root)
-        f = [p.force_applied for p in particles]
-        println("just after step, $f")
-        # showparticles(particles)
-
-
-
-        # contolling the timings:
-  
-        timetaken = convert(Millisecond, now() - start)
-        # time taken to compute that frame, in milliseconds
-
-        if (v = value(timetaken)) < Δt * 1000
-            # if the timetaken is less that the target delta time
-            sleeptime = Δt - v/1000
-            # sleep for the differnce
-            println("sleeping for $sleeptime")
-            sleep(sleeptime)
-            
-        end
-        t += Δt
-
+        println("$iteration_number, $(is_running[])")
+        sleep(0.05)
     end
     nothing
 end
