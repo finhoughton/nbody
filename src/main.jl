@@ -148,6 +148,17 @@ function read!(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vecto
     return (data, items)
 end
 
+function get_unnamed_filename()::Int
+    files::Vector{String} = filter(n -> endswith(n, ".txt") && startswith(n, "untitled"), readdir("data"))
+    # get a list of files in the data/ directory, and filter by txt files starting with "untitled"
+    if isempty(files)
+        return 1
+    end
+    filenums::Vector{Int} = map((parse $ Int) ∘ String ∘ collect ∘ (Iterators.takewhile $ isdigit) ∘ (Iterators.dropwhile $ !isdigit), files)
+    # extract the numbers from the untitled files
+    return max(filenums...) + 1
+end
+
 # ----- main function -----
 
 function test_saving(particles::Vector{Particle})::Vector{Particle}
@@ -163,16 +174,19 @@ function test_saving(particles::Vector{Particle})::Vector{Particle}
     return ps
 end
 
-function step_gui!(positions::Observable{Vector{SVector{2, Float64}}}, particles::Vector{Particle})::Nothing
+function step_gui!(xs, ys, particles::Vector{Particle})::Nothing
     # root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
     # step!(particles, root)
+    start = now()
     step!(particles)
-    positions[] = [p.pos for p ∈ particles]
+    timetaken = convert(Millisecond, now() - start)
+    xs[] = [p.pos[1] for p ∈ particles]
+    ys[] = [p.pos[2] for p ∈ particles]
     if (v = value(timetaken)) < Δt * 1000
         # if the timetaken is less that the target delta time
         sleeptime = Δt - v/1000
         # sleep for the differnce
-        println("sleeping for $sleeptime")
+        # println("sleeping for $sleeptime")
         sleep(sleeptime)
         
     end
@@ -183,12 +197,12 @@ function main()::Nothing
     # adding some particles
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=3,
+        n=8,
         edge_len=EDGE,
         mass_mean=10.0^24,
         mass_stddev=10.0^23,
         velocity_mean=0.0,
-        velocity_stddev=10.0^23,
+        velocity_stddev=5 * 10.0^8,
         ))
     push!(particles, Particle(mass=10.0^30, fixed=true))
 
@@ -206,58 +220,62 @@ function main()::Nothing
 
     ax = Axis(fig[1, 1])
 
-    positions::Observable{Vector{SVector{2, Float64}}} = Observable([p.pos for p ∈ particles])
-    scatter!(ax, positions; color=:blue, marker=:circle, markersize=2)
+    xs::Observable{Vector{Float64}} = Observable([p.pos[1] for p ∈ particles])
+    ys::Observable{Vector{Float64}} = Observable([p.pos[2] for p ∈ particles])
+    scatter!(ax, xs, ys; color=:blue, marker=:circle, markersize=10)
     ax.title = "Unititled Simulation"
-    xlims!(ax, -EDGE, EDGE)
-    ylims!(ax, -EDGE, EDGE)
+    # xlims!(ax, -EDGE, EDGE)
+    # ylims!(ax, -EDGE, EDGE)
 
-    # -- start/stop button --
+    fig[2, 1] = buttons = GridLayout(tellwidth = false)
 
-    # start_stop = Button(fig[2,1]; label = "start/stop", tellwidth = false)
-
-    # is_running = Observable(false)
-
-    # on(start_stop.clicks) do clicks
-    #     is_running[] = !is_running[] # switch to state of is_running
-    # end
-
-    # on(start_stop.clicks) do clicks
-    #     @async begin
-    #         while is_running[]
-    #             # isopen(fig.scene) || break # stop calculations if closed window
-    #             iteration_number += 1
-    #             step_gui!(positions, particles)
-    #         end
-    #     end
-    # end
-
-    start_stop = Button(fig[2, 1]; label = "start/stop", tellwidth = false)
+    start_stop_button = Button(buttons[1, 1]; label = "start/stop", tellwidth = false)
     
     is_running = Observable(false)
     
     function update_callback(t)
         iteration_number += 1
-        step_gui!(positions, particles)
+        step_gui!(xs, ys, particles)
     end
     
-    on(start_stop.clicks) do clicks
-        is_running[] = !is_running[] # switch to the state of is_running
+    on(start_stop_button.clicks) do clicks
+        is_running[] = !is_running[] # switch the state of is_running
         
         if is_running[]
             global timer
-            timer = Timer(update_callback, 0, interval=0.1)
+            timer = Timer(update_callback, 0, interval=Δt)
         else
             close(timer)
         end
     end
-    
-    
-    
+
+    save_button = Button(buttons[1, 2]; label = "Save simulaton")
+    savename_tb = Textbox(buttons[1, 3], placeholder = "Enter save name", tellwidth = false)
+    load_button = Button(buttons[1, 4]; label = "Load simulaton")
+    stored_filename = ""
+
+    on(savename_tb.stored_string) do s
+        stored_filename = string(s)
+    end
+
+
+    on(save_button.clicks) do clicks
+        if is_running[]
+            close(timer)
+        end
+
+        filename = stored_filename == "" ? string("untitled", get_unnamed_filename()) : stored_filename
+
+        f = open(string("data/", filename, ".txt"), "w")
+        save!(f, particles, Vector{Int64}())
+        close(f)
+        savename_tb.stored_string = ""
+    end
+
 
     while true
-        println("$iteration_number, $(is_running[])")
-        sleep(0.05)
+        # println("$iteration_number, $(is_running[]), $xs, $ys")
+        sleep(0.01)
     end
     nothing
 end
