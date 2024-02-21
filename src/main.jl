@@ -174,22 +174,25 @@ function test_saving(particles::Vector{Particle})::Vector{Particle}
     return ps
 end
 
-function step_gui!(xs, ys, particles::Vector{Particle})::Nothing
+function step_sim!(particles::Vector{Particle})::Nothing
     # root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
     # step!(particles, root)
     start = now()
     step!(particles)
     timetaken = convert(Millisecond, now() - start)
-    xs[] = [p.pos[1] for p ∈ particles]
-    ys[] = [p.pos[2] for p ∈ particles]
     if (v = value(timetaken)) < Δt * 1000
         # if the timetaken is less that the target delta time
         sleeptime = Δt - v/1000
         # sleep for the differnce
         # println("sleeping for $sleeptime")
-        sleep(sleeptime)
-        
+        sleep(sleeptime)        
     end
+end
+
+function update_gui!(xs, ys, particles::Vector{Particle})::Nothing
+    xs[] = [p.pos[1] for p ∈ particles]
+    ys[] = [p.pos[2] for p ∈ particles]
+    nothing
 end
 
 function main()::Nothing
@@ -204,7 +207,7 @@ function main()::Nothing
         velocity_mean=0.0,
         velocity_stddev=5 * 10.0^8,
         ))
-    push!(particles, Particle(mass=10.0^32, fixed=true))
+    push!(particles, Particle(mass=10.0^31, fixed=true))
 
     for (i, p) ∈ enumerate(particles)
         p.id = i
@@ -224,8 +227,6 @@ function main()::Nothing
     ys::Observable{Vector{Float64}} = Observable([p.pos[2] for p ∈ particles])
     scatter!(ax, xs, ys; color=:blue, marker=:circle, markersize=10)
     ax.title = "Unititled Simulation"
-    # xlims!(ax, -EDGE, EDGE)
-    # ylims!(ax, -EDGE, EDGE)
 
     fig[2, 1] = buttons = GridLayout(tellwidth = false)
 
@@ -235,26 +236,34 @@ function main()::Nothing
     
     function update_callback(t)
         iteration_number += 1
-        step_gui!(xs, ys, particles)
+        step_sim!(particles)
+        update_gui!(xs, ys, particles)
     end
     
+    function start_sim!()
+        start_stop_button.label = "Stop"
+        global timer
+        timer = Timer(update_callback, 0, interval=Δt)
+    end
+
+    function stop_sim!()::Nothing
+        close(timer)
+        is_running[] = false
+        start_stop_button.label = "Start"
+    end
+
     on(start_stop_button.clicks) do _
-        is_running[] = !is_running[] # switch the state of is_running
-        
         if is_running[]
-            start_stop_button.label = "Stop"
-            global timer
-            timer = Timer(update_callback, 0, interval=Δt)
+            stop_sim!()
         else
-            start_stop_button.label = "Start"
-            close(timer)
+            start_sim!()
         end
     end
 
     save_button = Button(buttons[1, 2]; label = "Save simulaton to: untited.txt")
     savename_tb = Textbox(buttons[2, 2], placeholder = "unitited", tellwidth = false)
     load_button = Button(buttons[1, 3]; label = "Load simulaton from: ")
-    # loadname_tb = Textbox(buttons[2, 3], placeholder = "", tellwidth = false)
+    loadname_tb = Textbox(buttons[2, 3], placeholder = "untited", tellwidth = false)
 
 
     # -- save button and text box --
@@ -267,10 +276,10 @@ function main()::Nothing
 
     on(save_button.clicks) do _
         if is_running[]
-            close(timer)
+            stop_sim!()
         end
 
-        filename = save_file == "" ? string("untitled", get_untitled_filename_number()) : save_file
+        filename = (save_file == "") ? string("untitled", get_untitled_filename_number()) : save_file
 
         f = open(string("data/", filename, ".txt"), "w")
         save!(f, particles, Vector{Int64}())
@@ -278,7 +287,31 @@ function main()::Nothing
     end
 
     # -- load button and text box --
+    load_file = ""
+    on(loadname_tb.stored_string) do s
+        load_file = string(s)
+        load_button.label = string("Load simulation from: ", s, ".txt")
+    end
 
+    on(load_button.clicks) do _
+        filename = string("data/", load_file, ".txt")
+        if !isfile(filename)
+            load_button.label = "file does not exist!"
+            for _ in 1:8
+                load_button.labelcolor = :red
+                sleep(0.3)
+                load_button.labelcolor = :black
+            end
+            load_button.label = "Load simulation from: "
+        else
+            stop_sim!()
+            f = open(filename, "r")
+            _, ps = read!(f, Particle)
+            ps::Vector{Particle}
+            particles = ps
+            update_gui!(xs, ys, particles)
+        end
+    end
 
 
 
