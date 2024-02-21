@@ -78,7 +78,7 @@ function Base.show(io::IO, x::BHTree)
     return print(io, "BHTree($(length(x.particles)) particles, centre $(x.centre), $(num_childs) children)")
 end
 
-in(p::Particle, b::BHTree) = p in b.particles
+Base.in(p::Particle, b::BHTree) = p in b.particles
 
 function push_to_quadrant!(
     nws::Vector{Particle},

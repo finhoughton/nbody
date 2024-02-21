@@ -242,6 +242,7 @@ function main()::Nothing
     
     function start_sim!()
         start_stop_button.label = "Stop"
+        is_running[] = true
         global timer
         timer = Timer(update_callback, 0, interval=Δt)
     end
@@ -253,6 +254,7 @@ function main()::Nothing
     end
 
     on(start_stop_button.clicks) do _
+        println("start stop clicked, is running: $(is_running[])")
         if is_running[]
             stop_sim!()
         else
