@@ -148,7 +148,7 @@ function read!(stream::IOStream, T::DataType)::Tuple{Tuple{Vararg{Int64}}, Vecto
     return (data, items)
 end
 
-function get_unnamed_filename()::Int
+function get_untitled_filename_number()::Int
     files::Vector{String} = filter(n -> endswith(n, ".txt") && startswith(n, "untitled"), readdir("data"))
     # get a list of files in the data/ directory, and filter by txt files starting with "untitled"
     if isempty(files)
@@ -204,7 +204,7 @@ function main()::Nothing
         velocity_mean=0.0,
         velocity_stddev=5 * 10.0^8,
         ))
-    push!(particles, Particle(mass=10.0^30, fixed=true))
+    push!(particles, Particle(mass=10.0^32, fixed=true))
 
     for (i, p) ∈ enumerate(particles)
         p.id = i
@@ -229,7 +229,7 @@ function main()::Nothing
 
     fig[2, 1] = buttons = GridLayout(tellwidth = false)
 
-    start_stop_button = Button(buttons[1, 1]; label = "start/stop", tellwidth = false)
+    start_stop_button = Button(buttons[1, 1]; label = "start", tellwidth = false)
     
     is_running = Observable(false)
     
@@ -238,44 +238,53 @@ function main()::Nothing
         step_gui!(xs, ys, particles)
     end
     
-    on(start_stop_button.clicks) do clicks
+    on(start_stop_button.clicks) do _
         is_running[] = !is_running[] # switch the state of is_running
         
         if is_running[]
+            start_stop_button.label = "Stop"
             global timer
             timer = Timer(update_callback, 0, interval=Δt)
         else
+            start_stop_button.label = "Start"
             close(timer)
         end
     end
 
-    save_button = Button(buttons[1, 2]; label = "Save simulaton")
-    savename_tb = Textbox(buttons[1, 3], placeholder = "Enter save name", tellwidth = false)
-    load_button = Button(buttons[1, 4]; label = "Load simulaton")
-    stored_filename = ""
+    save_button = Button(buttons[1, 2]; label = "Save simulaton to: untited.txt")
+    savename_tb = Textbox(buttons[2, 2], placeholder = "unitited", tellwidth = false)
+    load_button = Button(buttons[1, 3]; label = "Load simulaton from: ")
+    # loadname_tb = Textbox(buttons[2, 3], placeholder = "", tellwidth = false)
 
+
+    # -- save button and text box --
+    save_file = ""
     on(savename_tb.stored_string) do s
-        stored_filename = string(s)
+        save_file = string(s)
+        save_button.label = string("Save simulation to: ", s, ".txt")
     end
 
 
-    on(save_button.clicks) do clicks
+    on(save_button.clicks) do _
         if is_running[]
             close(timer)
         end
 
-        filename = stored_filename == "" ? string("untitled", get_unnamed_filename()) : stored_filename
+        filename = save_file == "" ? string("untitled", get_untitled_filename_number()) : save_file
 
         f = open(string("data/", filename, ".txt"), "w")
         save!(f, particles, Vector{Int64}())
         close(f)
-        savename_tb.stored_string = ""
     end
+
+    # -- load button and text box --
+
+
 
 
     while true
         # println("$iteration_number, $(is_running[]), $xs, $ys")
-        sleep(0.01)
+        sleep(Δt)
     end
     nothing
 end
