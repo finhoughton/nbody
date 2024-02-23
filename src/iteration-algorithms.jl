@@ -20,13 +20,9 @@ struct BHTree
         particles::Vector{Particle},
         centre::SVector{2, Float64},
         side_length::Float64,
-        depth::Int = 1
     )::Maybe{BHTree}
         
         len = length(particles)
-
-        ids = [p.id for p in particles]
-        println("length is $len, particles $ids, side length $side_length, depth $depth")
 
         if side_length == 0
             error("0 length")
@@ -37,10 +33,6 @@ struct BHTree
         end
 
         quadrants::Tuple{Vector{Particle}, Vector{Particle}, Vector{Particle}, Vector{Particle}} = ([], [], [], [])
-
-        if depth == 2
-            1 + 1
-        end
 
         if len == 1
             total_mass = only(particles).mass
@@ -66,7 +58,7 @@ struct BHTree
                 centre + SVector(quarter_side_len, -quarter_side_len))  # SE
 
                 # recurive call creating the 4 children if there are more than 1 particle
-                children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len, depth + 1) for (quad, quad_centre) ∈ zip(quadrants, centres)])
+                children = SVector{4, Maybe{BHTree}}([BHTree(quad, quad_centre, half_side_len) for (quad, quad_centre) ∈ zip(quadrants, centres)])
         end
 
         return Just(new(particles, children, children..., centre, total_mass, centre_of_mass, side_length))

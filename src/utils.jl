@@ -2,7 +2,7 @@ include("utils/maybe.jl")
 
 # ----- constants -----
 
-const UPS::Int64 = 50
+const UPS::Int64 = 400
 
 const Δt::Float64 = 1/UPS
 
@@ -13,7 +13,7 @@ const DIST::Float64 = 1e9
 # const G::Float64 = 6.674e-11
 const G::Float64 = 10^-3
 
-const EPS_SOFTENING::Float64 = 1e8
+const EPS_SOFTENING::Float64 = 1e7
 # stop forcess becoming too big when objects are very close
 
 const EDGE::Float64 = 10 * DIST

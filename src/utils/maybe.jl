@@ -67,13 +67,13 @@ function is_nothing(value::Maybe{T})::Bool where {T}
 end
 
 """
-    lift(func::(A, B, ... -> Z))::(Maybe{A}, Maybe{B}, ... -> Maybe{Z})
+    liftM(func::(A, B, ... -> Z))::(Maybe{A}, Maybe{B}, ... -> Maybe{Z})
 
 lift a function to be applicable to `Maybe` values. If any of the input values are `nothing`, `nothing` is returned.
 
 # examples
 ```julia-repl
-julia> maybe_add = lift(+)
+julia> maybe_add = liftM(+)
 (::var"#lifted#"{typeof(+)}) (generic function with 1 method)
 julia> a = maybe_add(Just(10), Just(4), Just(100))
 Just{Int64}(114)
@@ -83,7 +83,7 @@ true
 ```
 
 """
-function lift(func)
+function liftM(func)
     function lifted(vs...)
         any((is_nothing(v) for v ∈ vs)) ? nothing : Just(func((v.__v for v ∈ vs)...))
     end

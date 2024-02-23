@@ -116,7 +116,7 @@ function main()::Nothing
     # adding some particles
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=8,
+        n=15,
         edge_len=EDGE,
         mass_mean=10.0^24,
         mass_stddev=10.0^23,
