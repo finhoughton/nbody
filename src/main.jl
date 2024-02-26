@@ -150,7 +150,7 @@ function main()::Nothing
     
     is_running = Observable(false)
     
-    function update_callback(t)::Nothing
+    function update_callback(t::Timer)::Nothing
         iteration_number += 1
         step_sim!(particles)
         update_gui!(xs, ys, particles)
@@ -185,6 +185,7 @@ function main()::Nothing
     load_button = Button(buttons[1, 3]; label = "Load simulaton from: ")
     loadname_tb = Textbox(buttons[2, 3], placeholder = "untited", tellwidth = false)
 
+    speed_sl = Slider(buttons[3, 2], range=1:1:10, startvalue=10)
 
     # -- save button and text box --
     save_file = ""
@@ -215,21 +216,20 @@ function main()::Nothing
 
     on(load_button.clicks) do _
         filename = string("data/", load_file, ".txt")
-        if !isfile(filename)
-            load_button.label = "file does not exist!"
-            for _ in 1:8
-                load_button.labelcolor = :red
-                sleep(0.3)
-                load_button.labelcolor = :black
-            end
-            load_button.label = "Load simulation from: "
-        else
+        if isfile(filename)
             stop_sim!()
             f = open(filename, "r")
             _, ps = read!(f, Particle)
             ps::Vector{Particle}
             particles = ps
             update_gui!(xs, ys, particles)
+        else
+            load_button.label = "file does not exist!"
+            load_button.labelcolor = :red
+            Timer(function(t::Timer) # reset the load button in 2 seconds
+                load_button.label = "Load simulation from: "
+                load_button.labelcolor = :black
+            end, 2)
         end
     end
 
