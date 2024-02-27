@@ -112,3 +112,77 @@ function calculate_force(p::Particle, node::BHTree)::SVector{2, Float64}
     println("force is $F")
     F
 end
+# ------ iteration ------
+
+# barnes-hut
+function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothing 
+    function my_enqueue!(x)
+        println("enqueuing $x")
+        enqueue!(the_q, x)
+    end
+    my_enqueue!(root)
+    # enqueue the root node
+    while !isempty(the_q)
+        println("the_q $the_q")
+        current::BHTree = dequeue!(the_q)
+        # dequeue a node
+        distance_to_centre::Float64 = norm(p.pos - current.centre)
+        # calculate the distance to the centre to be used in MAC calculations
+        children = drop_nothings(current.children)
+        if current.side_length < MAC * distance_to_centre || isempty(children)
+            # the ratio is not greater than the MAC, use this quadrant to appriximate the force on the particle
+            if length(current.particles) != 1 || only(current.particles) != p
+                p.force_applied += calculate_force(p, current)
+            end
+        else
+            # the ratio is greater than the MAC, enqueue the current node's children
+            my_enqueue!.(children)
+        end
+    end
+    nothing
+end
+
+# barnes-hut step
+function step!(particles::Vector{Particle}, root::BHTree)::Nothing
+    the_q = Queue{BHTree}()
+    # create the queue used in bh algorithm
+    foreach(step_particle! $ (root, the_q), particles)
+    # foreach used instead of map because the results of the function calls are not needed.
+    f = [p.force_applied for p in particles]
+    println("before update_particle!, $f")
+    foreach(update_particle!, particles)
+    f = [p.force_applied for p in particles]
+    println("after update_particle!, $f")
+    nothing
+end
+
+# direct-sum step
+function step!(particles::Vector{Particle})::Nothing
+    for (p, q) ∈ combinations(particles, 2)
+        # loop through pairwise combinations of particles,
+        # equiallent to 2 for loops and an if statement skipping the case when both for loops give the same particle.
+
+        fp::SVector{2, Float64} = calculate_force(p, q)
+        # calculate the force on p with Newton's formula
+
+        p.force_applied += fp
+        q.force_applied += -fp # Newton's third law
+    end
+    update_particle!.(particles)
+    nothing
+end
+
+function step_sim!(particles::Vector{Particle})::Nothing
+    # root = BHTree(particles, SA[0.0, 0.0], 2 * EDGE) |> unsafe_from_just
+    # step!(particles, root)
+    start = now()
+    step!(particles)
+    timetaken = convert(Millisecond, now() - start)
+    if (v = value(timetaken)) < Δt * 1000
+        # if the timetaken is less that the target delta time
+        sleeptime = Δt - v/1000
+        # sleep for the differnce
+        # println("sleeping for $sleeptime")
+        sleep(sleeptime)        
+    end
+end
