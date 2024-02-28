@@ -11,9 +11,10 @@ include("saving.jl")
 
 # order of include():
 # main
-# iteration algorithms
-# particle
-# utils
+# - saving
+# - iteration algorithms
+# - - particle
+# - - - utils
 
 function update_gui!(xs, ys, particles::Vector{Particle})::Nothing
     xs[] = [p.pos[1] for p ∈ particles]
@@ -23,16 +24,17 @@ end
 
 function main()::Nothing
 
-    # adding some particles
+    # -- particle setup --
+
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=30,
+        n=300,
         edge_len=EDGE,
         mass_mean=10.0^25,
-        mass_stddev=5*10.0^24,
-        velocity_stddev=5*10.0^8,
-        ))
-    push!(particles, Particle(mass=10.0^29, fixed=false))
+        mass_stddev=5 * 10.0^24,
+        velocity_stddev=5 * 10.0^8,
+    ))
+    push!(particles, Particle(mass=10.0^30, fixed=false))
 
     for (i, p) ∈ enumerate(particles)
         p.id = i
@@ -52,15 +54,29 @@ function main()::Nothing
     scatter!(ax, xs, ys; color=:blue, marker=:circle, markersize=10)
     ax.title = "Unititled Simulation"
 
-    fig[2, 2] = buttons = GridLayout(tellwidth = false)
-    
-    is_running = Observable(false)
-    
-    function update_callback(t::Timer)
-        step_sim!(particles)
-        update_gui!(xs, ys, particles)
+    fig[2, 2] = buttons = GridLayout(tellwidth=false)
+
+    # -- barnes-hut toogle --
+
+    bh_toogle = Toggle(buttons[1, 1]; active=false)
+    bh_label = Label(buttons[2, 1], "Use Barnes-Hut?")
+
+    use_bh::Bool = false
+    on(bh_toogle.active) do a
+        string("Switched to ", a ? "Barnes-Hut" : "direct sum") |> println
+        use_bh = a
     end
 
+    # -- speed slider, controlls actually stepping the simulation --
+
+    function step_sim!(t::Timer)
+        if use_bh
+            root::BHTree = make_bh(particles)
+            step!(root, particles)
+        else
+            step!(particles)
+        end
+    end
 
     # each timer iterates the simulation every Δt, more timers = faster
     timers::Vector{Timer} = []
@@ -71,9 +87,9 @@ function main()::Nothing
         if Δn == 0
             return nothing
         elseif Δn > 0
-            # we need to create  more timers
+            # we need to create more timers
             ΔΔt = Δt / Δn
-            [Timer((_::Timer) -> push!(timers, Timer(update_callback, 0, interval=Δt)), (i - 1) * ΔΔt) for i ∈ 1:Δn]
+            [Timer((_::Timer) -> push!(timers, Timer(step_sim!, 0, interval=Δt)), (i - 1) * ΔΔt) for i ∈ 1:Δn]
         else
             # we need to close some timers
             [close(pop!(timers)) for _ ∈ 1:abs(Δn)]
@@ -82,7 +98,7 @@ function main()::Nothing
     end
 
     speed_sl = Slider(fig[1, 1], range=0:1:20, startvalue=0, horizontal=false)
- 
+
     on(speed_sl.value) do v
         set_num_timers!(v)
     end
@@ -91,13 +107,11 @@ function main()::Nothing
         set_close_to!(speed_sl, 0)
     end
 
-    save_button = Button(buttons[1, 2]; label = "Save simulaton to: untited.txt")
-    savename_tb = Textbox(buttons[2, 2], placeholder = "unitited", tellwidth = false)
-    load_button = Button(buttons[1, 3]; label = "Load simulaton from: ")
-    loadname_tb = Textbox(buttons[2, 3], placeholder = "untited", tellwidth = false)
-
-
     # -- save button and text box --
+
+    save_button = Button(buttons[1, 2]; label="Save simulaton to: untited.txt")
+    savename_tb = Textbox(buttons[2, 2], placeholder="unitited", tellwidth=false)
+
     save_file = ""
     on(savename_tb.stored_string) do s
         save_file = string(s)
@@ -112,11 +126,15 @@ function main()::Nothing
         ax.title = filename
 
         f = open(string("data/", filename, ".txt"), "w")
-        save!(f, particles, Vector{Int64}())
+        save!(f, particles, Int64[])
         close(f)
     end
 
     # -- load button and text box --
+
+    load_button = Button(buttons[1, 3]; label="Load simulaton from: ")
+    loadname_tb = Textbox(buttons[2, 3], placeholder="untited", tellwidth=false)
+
     load_file = ""
     on(loadname_tb.stored_string) do s
         load_file = string(s)
@@ -136,20 +154,20 @@ function main()::Nothing
         else
             load_button.label = "file does not exist!"
             load_button.labelcolor = :red
-            Timer(function(t::Timer) # reset the load button in 2 seconds
-                load_button.label = "Load simulation from: "
-                load_button.labelcolor = :black
-            end, 2)
+            Timer(function (t::Timer) # reset the load button in 2 seconds
+                    load_button.label = "Load simulation from: "
+                    load_button.labelcolor = :black
+                end, 2)
         end
     end
 
-
+    # -- main loop --
 
     while isopen(fig.scene)
-        # println("$iteration_number, $(is_running[]), $xs, $ys")
+        update_gui!(xs, ys, particles)
         sleep(Δt)
     end
     nothing
 end
 
-main()
+# main()

@@ -2,7 +2,7 @@ include("utils/maybe.jl")
 
 # ----- constants -----
 
-const UPS::Int64 = 400
+const UPS::Int64 = 40
 
 const Δt::Float64 = 1/UPS
 

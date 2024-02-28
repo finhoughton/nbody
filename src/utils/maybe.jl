@@ -91,11 +91,11 @@ end
 
 
 """
-    drop_nothings(xs::Any)::Vector
+    drop_nothings(xs::Vector{Maybe{T}})::Vector{T} where {T}
 
 remove nothings from a vector, keeping only the values inside `Maybe`s
 """
-function drop_nothings(xs::Any)::Vector
+function drop_nothings(xs::AbstractVector{Maybe{T}})::Vector{T} where {T}
     [x.__v for x ∈ xs if is_something(x)]
 end
 

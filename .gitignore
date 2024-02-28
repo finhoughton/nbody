@@ -1,5 +1,6 @@
 /Manifest.toml
 /.vscode
 /save.txt
+/src/testing.jl
 .DS_Store
 data
