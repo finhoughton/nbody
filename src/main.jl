@@ -26,11 +26,11 @@ function main()::Nothing
     # adding some particles
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=15,
+        n=30,
         edge_len=EDGE,
         mass_mean=10.0^25,
         mass_stddev=5*10.0^24,
-        velocity_stddev=10.0^8,
+        velocity_stddev=5*10.0^8,
         ))
     push!(particles, Particle(mass=10.0^29, fixed=false))
 
@@ -85,7 +85,6 @@ function main()::Nothing
  
     on(speed_sl.value) do v
         set_num_timers!(v)
-        println("slider moved to $v, timers: $(length(timers))")
     end
 
     function pause_sim!()
@@ -104,7 +103,6 @@ function main()::Nothing
         save_file = string(s)
         save_button.label = string("Save simulation to: ", s, ".txt")
     end
-
 
     on(save_button.clicks) do _
         pause_sim!()
@@ -129,6 +127,7 @@ function main()::Nothing
         filename = string("data/", load_file, ".txt")
         if isfile(filename)
             pause_sim!()
+            ax.title = load_file
             f = open(filename, "r")
             _, ps = read!(f, Particle)
             ps::Vector{Particle}
