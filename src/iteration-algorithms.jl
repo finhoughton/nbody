@@ -14,9 +14,9 @@ mutable struct BHTree
     side_length::Float64
 end
 
-empty_bh(edge::Float64, centre::SVector{2,Float64}) = BHTree(Vector{Particle}(), MVector{4,Maybe{BHTree}}(nothing, nothing, nothing, nothing), centre, 0.0, SA[0.0, 0.0], edge)
+empty_bh(edge::Float64, centre::SVector{2,Float64}) = BHTree(Vector{Particle}(), Vector{Maybe{BHTree}}([nothing, nothing, nothing, nothing]), centre, 0.0, SA[0.0, 0.0], edge)
 
-singleon_bh(edge::Float64, centre::SVector{2,Float64}, p::Particle) = BHTree([p], MVector{4,Maybe{BHTree}}(nothing, nothing, nothing, nothing), centre, 0.0, SA[0.0, 0.0], edge)
+singleon_bh(edge::Float64, centre::SVector{2,Float64}, p::Particle) = BHTree([p], Vector{Maybe{BHTree}}([nothing, nothing, nothing, nothing]), centre, 0.0, SA[0.0, 0.0], edge)
 
 function Base.push!(bh::BHTree, p::Particle)::Maybe{BHTree}
     push!(bh.particles, p)
@@ -117,9 +117,7 @@ function make_bh(ps::Vector{Particle})::BHTree
     e = 2.1 * max(maximum(abs, (p.pos[1] for p ∈ ps)), maximum(abs, (p.pos[2] for p ∈ ps)))
     # make sure every particle is within the root node
     bh = empty_bh(e, SA[0.0, 0.0])
-    for p ∈ ps
-        push!(bh, p)
-    end
+    foreach(push!$bh, ps)
     calculate_centres_of_mass!(bh)
-    bh
+    return bh
 end

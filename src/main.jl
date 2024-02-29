@@ -1,6 +1,5 @@
 using LinearAlgebra
 using StaticArrays
-using Dates: now, value, DateTime, Millisecond
 using Combinatorics: combinations
 using Random
 using PartialFunctions
@@ -46,6 +45,7 @@ function main()::Nothing
 
     fig = Figure()
     display(fig)
+    resize!(fig.scene, 1000, 500)
 
     ax = Axis(fig[1, 2])
 
@@ -58,8 +58,8 @@ function main()::Nothing
 
     # -- barnes-hut toogle --
 
-    bh_toogle = Toggle(buttons[1, 1]; active=false)
-    bh_label = Label(buttons[2, 1], "Use Barnes-Hut?")
+    bh_toogle = Toggle(buttons[1, 2]; active=false)
+    bh_label = Label(buttons[1, 1], "Use Barnes-Hut?")
 
     use_bh::Bool = false
     on(bh_toogle.active) do a
@@ -82,7 +82,7 @@ function main()::Nothing
     timers::Vector{Timer} = []
 
     function set_num_timers!(n::Int)::Nothing
-        l = length(timers)
+        l = length(timers) # the current number of timers
         Δn = n - l
         if Δn == 0
             return nothing
@@ -109,8 +109,8 @@ function main()::Nothing
 
     # -- save button and text box --
 
-    save_button = Button(buttons[1, 2]; label="Save simulaton to: untited.txt")
-    savename_tb = Textbox(buttons[2, 2], placeholder="unitited", tellwidth=false)
+    save_button = Button(buttons[1, 3]; label="Save simulaton to: untited.txt")
+    savename_tb = Textbox(buttons[2, 3], placeholder="unitited", tellwidth=false)
 
     save_file = ""
     on(savename_tb.stored_string) do s
@@ -132,8 +132,8 @@ function main()::Nothing
 
     # -- load button and text box --
 
-    load_button = Button(buttons[1, 3]; label="Load simulaton from: ")
-    loadname_tb = Textbox(buttons[2, 3], placeholder="untited", tellwidth=false)
+    load_button = Button(buttons[1, 4]; label="Load simulaton from: ")
+    loadname_tb = Textbox(buttons[2, 4], placeholder="untited", tellwidth=false)
 
     load_file = ""
     on(loadname_tb.stored_string) do s
@@ -161,6 +161,50 @@ function main()::Nothing
         end
     end
 
+    # -- buttons for generating particles
+
+    generate_button = Button(buttons[4, 1]; label="Generate particless")
+
+    Label(buttons[3, 2], "n:")
+    num_particles_tb = Textbox(buttons[4, 2], placeholder="0", validator=Int64)
+
+    num_particles::Int64 = 0
+    on(num_particles_tb.stored_string) do s
+        num_particles = parse(Int64, s)
+    end
+
+    Label(buttons[3, 3], "mass mean:")
+    mass_mean_tb = Textbox(buttons[4, 3], placeholder="1e24", validator=Float64)
+    mass_mean::Float64 = 1e24
+    on(mass_mean_tb.stored_string) do s
+        mass_mean = parse(Float64, s)
+    end
+
+    Label(buttons[3, 4], "mass stdddev:")
+    mass_stddev_tb = Textbox(buttons[4, 4], placeholder="0", validator=Float64)
+    mass_stddev::Float64 = 0
+    on(mass_stddev_tb.stored_string) do s
+        mass_stddev = parse(Float64, s)
+    end
+
+    Label(buttons[3, 5], "velocity stdddev:")
+    velocity_stddev_tb = Textbox(buttons[4, 5], placeholder="0", validator=Float64)
+    velocity_stddev::Float64 = 0
+    on(velocity_stddev_tb.stored_string) do s
+        velocity_stddev = parse(Float64, s)
+    end
+
+    on(generate_button.clicks) do _
+        ps::Vector{Particle} = random_particles(
+            n=num_particles,
+            edge_len=EDGE,
+            mass_mean=mass_mean,
+            mass_stddev=mass_stddev,
+            velocity_stddev=velocity_stddev
+        )
+        push!(particles, ps...)
+    end
+
     # -- main loop --
 
     while isopen(fig.scene)
@@ -170,4 +214,4 @@ function main()::Nothing
     nothing
 end
 
-# main()
+main()
