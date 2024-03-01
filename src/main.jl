@@ -96,6 +96,18 @@ function main()::Nothing
         println("mac set to $mac")
     end
 
+    # -- particle max speed --
+
+    speed_lb = Label(menu[5, 1], "particle max speed is:\nInf")
+    max_speed_tb = Textbox(menu[5, 2], placeholder="Inf", validator=(s -> (x = tryparse(Float64, s)) ≢ nothing && x > 0))
+
+    particle_max_speed::Float64 = Inf
+    on(max_speed_tb.stored_string) do s
+        particle_max_speed = parse(Float64, s)
+        println("particle max speed set to $particle_max_speed")
+        speed_lb.text = "particle max speed is:\n$particle_max_speed"
+    end
+
     # -- speed slider, controlls actually stepping the simulation --
 
     function step_sim!(t::Timer)
@@ -105,6 +117,7 @@ function main()::Nothing
         else
             step!(particles)
         end
+        foreach(update_particle!$particle_max_speed, particles)
         iteration_num += 1
     end
 
@@ -236,23 +249,13 @@ function main()::Nothing
         push!(particles, ps...)
     end
 
-    # -- particle max speed --
-
-
-    speed_lb = Label(menu[5, 1], "particle max speed is:\nInf")
-    max_speed_tb = Textbox(menu[5, 2], placeholder="Inf", validator=(s -> (x = tryparse(Float64, s)) ≢ nothing && x > 0))
-
-    on(max_speed_tb.stored_string) do s
-        particle_max_speed = parse(Float64, s)
-        speed_lb.text = "particle max speed is:\n$particle_max_speed"
-    end
-
     # -- main loop --
 
     while isopen(fig.scene)
         update_gui!(xs, ys, particles)
         sleep(Δt/100)
     end
+    close.(timers)
     nothing
 end
 

@@ -13,8 +13,6 @@ mutable struct Particle
     fixed::Bool
 end
 
-particle_max_speed::Float64 = Inf64
-
 function Particle(
     ; mass::Float64,
     pos::SVector{2,Float64}=SA[0.0, 0.0],
@@ -40,7 +38,7 @@ function Base.:(==)(p::Particle, q::Particle)::Bool
 end
 
 # iterate the particle's velocity and position
-function update_particle!(p::Particle)::Nothing
+function update_particle!(max_speed::Float64, p::Particle)::Nothing
     # area of a trapezium = (a + b) * h / 2
     if !p.fixed
         # using trapezium approximation for impulse (Δp). Δp = ∫F dt 
@@ -49,8 +47,9 @@ function update_particle!(p::Particle)::Nothing
 
         old_v = p.v
         p.v += Δv
-        if norm(p.v) > particle_max_speed
-            p.v = normalize(p.v) * particle_max_speed
+        if norm(p.v) > max_speed
+            x = normalize(p.v) * max_speed
+            p.v = x
         end
         new_v = p.v
 

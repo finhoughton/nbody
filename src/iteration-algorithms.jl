@@ -86,7 +86,6 @@ function step!(root::BHTree, particles::Vector{Particle})::Nothing
     the_q::Queue{BHTree} = Queue{BHTree}()
     # create the queue used in bh algorithm
     foreach(step_particle!$(root, the_q), particles)
-    foreach(update_particle!, particles)
     # foreach used instead of map because the results of the function calls are not needed.
     nothing
 end
@@ -103,7 +102,6 @@ function step!(particles::Vector{Particle})::Nothing
         p.force_applied += fp
         q.force_applied += -fp # Newton's third law
     end
-    update_particle!.(particles)
     nothing
 end
 
