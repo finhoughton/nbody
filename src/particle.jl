@@ -13,6 +13,7 @@ mutable struct Particle
     fixed::Bool
 end
 
+particle_max_speed::Float64 = Inf64
 
 function Particle(
     ; mass::Float64,
@@ -48,6 +49,9 @@ function update_particle!(p::Particle)::Nothing
 
         old_v = p.v
         p.v += Δv
+        if norm(p.v) > particle_max_speed
+            p.v = normalize(p.v) * particle_max_speed
+        end
         new_v = p.v
 
         # use trapezium approximation for displacement (s). s = ∫v dt

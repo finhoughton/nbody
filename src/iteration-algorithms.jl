@@ -3,7 +3,7 @@ using StaticArrays
 
 include("particle.jl")
 
-const MAC::Float64 = 0.3 # smaller MAC = more accurate
+mac::Float64 = 1 # smaller MAC = more accurate
 
 mutable struct BHTree
     particles::Vector{Particle}
@@ -44,7 +44,7 @@ function Base.push!(bh::BHTree, p::Particle)::Maybe{BHTree}
 end
 
 function calculate_centres_of_mass!(bh::BHTree)::Nothing
-    total_mass::Float64 = sum(p.mass for p ∈ bh.particles)
+    total_mass::Float64 = sum(p.mass for p ∈ bh.particles) 
     total_mass_pos::SVector{2, Float64} = sum(p.mass * p.pos for p ∈ bh.particles)
     bh.total_mass = total_mass
     bh.centre_of_mass = total_mass_pos / total_mass
@@ -65,23 +65,17 @@ function step_particle!(root::BHTree, the_q::Queue{BHTree}, p::Particle)::Nothin
     # enqueue the root node
     while !isempty(the_q)
         current::BHTree = dequeue!(the_q)
-        # dequeue a node
+        # dequeue a node 
         distance_to_centre::Float64 = norm(p.pos - current.centre)
         # calculate the distance to the centre to be used in MAC calculations
-        if current.side_length < MAC * distance_to_centre || all(is_nothing, current.children)
+        if current.side_length < mac * distance_to_centre || all(is_nothing, current.children)
             # the ratio is not greater than the MAC, use this quadrant to appriximate the force on the particle
             if length(current.particles) != 1 || only(current.particles) != p
                 p.force_applied += calculate_force(p, current)
             end
         else
             # the ratio is greater than the MAC, enqueue the current node's children
-            for (c::Maybe{BHTree}) ∈ (current.children::Vector{Maybe{BHTree}})
-                c::Maybe{BHTree}
-                if is_something(c)
-                    enqueue!(the_q, unsafe_from_just(c))
-                end
-            end
-            
+            foreach(enqueue!$the_q, drop_nothings(current.children))
         end
     end
     nothing

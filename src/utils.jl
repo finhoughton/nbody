@@ -13,7 +13,7 @@ const DIST::Float64 = 1e9
 # const G::Float64 = 6.674e-11
 const G::Float64 = 10^-2
 
-const EPS_SOFTENING::Float64 = 1e6
+const EPS_SOFTENING::Float64 = 1e9
 # stop forcess becoming too big when objects are very close
 
 const EDGE::Float64 = 10 * DIST

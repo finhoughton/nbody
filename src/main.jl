@@ -16,8 +16,10 @@ include("saving.jl")
 # - - - utils
 
 function update_gui!(xs, ys, particles::Vector{Particle})::Nothing
-    xs[] = [p.pos[1] for p ∈ particles]
-    ys[] = [p.pos[2] for p ∈ particles]
+    xs.val = [p.pos[1] for p ∈ particles]
+    ys.val = [p.pos[2] for p ∈ particles]
+    notify(xs)
+    notify(ys)
     nothing
 end
 
@@ -27,7 +29,7 @@ function main()::Nothing
 
     particles::Vector{Particle} = []
     append!(particles, random_particles(
-        n=300,
+        n=50,
         edge_len=EDGE,
         mass_mean=10.0^25,
         mass_stddev=5 * 10.0^24,
@@ -39,13 +41,13 @@ function main()::Nothing
         p.id = i
     end
 
-    t::Float64 = 0
+    iteration_num::Int64 = 0
 
     # -- GUI setup -- 
 
     fig = Figure()
     display(fig)
-    resize!(fig.scene, 1000, 500)
+    resize!(fig.scene, 1000, 1000)
 
     ax = Axis(fig[1, 2])
 
@@ -54,17 +56,44 @@ function main()::Nothing
     scatter!(ax, xs, ys; color=:blue, marker=:circle, markersize=10)
     ax.title = "Unititled Simulation"
 
-    fig[2, 2] = buttons = GridLayout(tellwidth=false)
+    fig[2, 2] = menu = GridLayout(tellwidth=false)
+
+    # -- stats -- 
+
+    num_particles_lb = Label(menu[1, 1], "particles: 0")
+    ups_lb = Label(menu[2, 1], "UPS: 0")
+
+    prev_iteration_num::Int64 = 0
+
+    function update_stats!(t::Timer)::Nothing
+        Δi = iteration_num - prev_iteration_num
+        prev_iteration_num = iteration_num
+        ups_lb.text = "UPS: $Δi"
+        num_particles_lb.text = "Particles: $(length(particles))"
+        nothing
+    end
+    Timer(update_stats!, 0, interval=1)
+    # update the stats every second
 
     # -- barnes-hut toogle --
 
-    bh_toogle = Toggle(buttons[1, 2]; active=false)
-    bh_label = Label(buttons[1, 1], "Use Barnes-Hut?")
+    Label(menu[1, 2], "Use Barnes-Hut?")
+    bh_toogle = Toggle(menu[1, 3]; active=false)
 
     use_bh::Bool = false
     on(bh_toogle.active) do a
         string("Switched to ", a ? "Barnes-Hut" : "direct sum") |> println
         use_bh = a
+    end
+
+    # -- MAC box --
+
+    Label(menu[2, 2], "MAC: ")
+    mac_tb = Textbox(menu[2, 3], placeholder="1", validator=Float64)
+
+    on(mac_tb.stored_string) do s
+        mac = parse(Float64, s)
+        println("mac set to $mac")
     end
 
     # -- speed slider, controlls actually stepping the simulation --
@@ -76,6 +105,7 @@ function main()::Nothing
         else
             step!(particles)
         end
+        iteration_num += 1
     end
 
     # each timer iterates the simulation every Δt, more timers = faster
@@ -101,6 +131,7 @@ function main()::Nothing
 
     on(speed_sl.value) do v
         set_num_timers!(v)
+        println("slider set to $v")
     end
 
     function pause_sim!()
@@ -109,8 +140,8 @@ function main()::Nothing
 
     # -- save button and text box --
 
-    save_button = Button(buttons[1, 3]; label="Save simulaton to: untited.txt")
-    savename_tb = Textbox(buttons[2, 3], placeholder="unitited", tellwidth=false)
+    save_button = Button(menu[1, 4]; label="Save simulaton to: untited.txt")
+    savename_tb = Textbox(menu[2, 4], placeholder="unitited", tellwidth=false)
 
     save_file = ""
     on(savename_tb.stored_string) do s
@@ -132,8 +163,8 @@ function main()::Nothing
 
     # -- load button and text box --
 
-    load_button = Button(buttons[1, 4]; label="Load simulaton from: ")
-    loadname_tb = Textbox(buttons[2, 4], placeholder="untited", tellwidth=false)
+    load_button = Button(menu[1, 5]; label="Load simulaton from: ")
+    loadname_tb = Textbox(menu[2, 5], placeholder="untited", tellwidth=false)
 
     load_file = ""
     on(loadname_tb.stored_string) do s
@@ -163,32 +194,32 @@ function main()::Nothing
 
     # -- buttons for generating particles
 
-    generate_button = Button(buttons[4, 1]; label="Generate particless")
+    generate_button = Button(menu[4, 1]; label="Generate particless")
 
-    Label(buttons[3, 2], "n:")
-    num_particles_tb = Textbox(buttons[4, 2], placeholder="0", validator=Int64)
+    Label(menu[3, 2], "n:")
+    num_particles_tb = Textbox(menu[4, 2], placeholder="0", validator=Int64)
 
     num_particles::Int64 = 0
     on(num_particles_tb.stored_string) do s
         num_particles = parse(Int64, s)
     end
 
-    Label(buttons[3, 3], "mass mean:")
-    mass_mean_tb = Textbox(buttons[4, 3], placeholder="1e24", validator=Float64)
+    Label(menu[3, 3], "mass mean:")
+    mass_mean_tb = Textbox(menu[4, 3], placeholder="1e24", validator=Float64)
     mass_mean::Float64 = 1e24
     on(mass_mean_tb.stored_string) do s
         mass_mean = parse(Float64, s)
     end
 
-    Label(buttons[3, 4], "mass stdddev:")
-    mass_stddev_tb = Textbox(buttons[4, 4], placeholder="0", validator=Float64)
+    Label(menu[3, 4], "mass stdddev:")
+    mass_stddev_tb = Textbox(menu[4, 4], placeholder="0", validator=Float64)
     mass_stddev::Float64 = 0
     on(mass_stddev_tb.stored_string) do s
         mass_stddev = parse(Float64, s)
     end
 
-    Label(buttons[3, 5], "velocity stdddev:")
-    velocity_stddev_tb = Textbox(buttons[4, 5], placeholder="0", validator=Float64)
+    Label(menu[3, 5], "velocity stdddev:")
+    velocity_stddev_tb = Textbox(menu[4, 5], placeholder="0", validator=Float64)
     velocity_stddev::Float64 = 0
     on(velocity_stddev_tb.stored_string) do s
         velocity_stddev = parse(Float64, s)
@@ -205,11 +236,22 @@ function main()::Nothing
         push!(particles, ps...)
     end
 
+    # -- particle max speed --
+
+
+    speed_lb = Label(menu[5, 1], "particle max speed is:\nInf")
+    max_speed_tb = Textbox(menu[5, 2], placeholder="Inf", validator=(s -> (x = tryparse(Float64, s)) ≢ nothing && x > 0))
+
+    on(max_speed_tb.stored_string) do s
+        particle_max_speed = parse(Float64, s)
+        speed_lb.text = "particle max speed is:\n$particle_max_speed"
+    end
+
     # -- main loop --
 
     while isopen(fig.scene)
         update_gui!(xs, ys, particles)
-        sleep(Δt)
+        sleep(Δt/100)
     end
     nothing
 end
