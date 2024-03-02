@@ -8,7 +8,6 @@ mutable struct Particle
     mass::Float64
     pos::SVector{2,Float64}
     v::SVector{2,Float64}
-    previous_force_applied::SVector{2,Float64}
     force_applied::SVector{2,Float64}
     fixed::Bool
 end
@@ -24,7 +23,7 @@ function Particle(
     elseif fixed && norm(v) ≠ 0
         error("fixed is incomaptable with velocity.")
     end
-    Particle(-1, mass, pos, v, SA[0.0, 0.0], SA[0.0, 0.0], fixed)
+    Particle(-1, mass, pos, v, SA[0.0, 0.0], fixed)
 end
 
 Particle(mass::Float64, pos::SVector{2,Float64}, v::SVector{2,Float64}) = Particle(mass=mass, pos=pos, v=v, fixed=false)
@@ -37,27 +36,61 @@ function Base.:(==)(p::Particle, q::Particle)::Bool
     p.id == q.id
 end
 
-# iterate the particle's velocity and position
-function update_particle!(max_speed::Float64, p::Particle)::Nothing
-    # area of a trapezium = (a + b) * h / 2
-    if !p.fixed
-        # using trapezium approximation for impulse (Δp). Δp = ∫F dt 
-        Δp::SVector{2,Float64} = 0.5 * Δt * (p.previous_force_applied + p.force_applied)
-        Δv::SVector{2,Float64} = Δp / p.mass
-
-        old_v = p.v
-        p.v += Δv
-        if norm(p.v) > max_speed
-            x = normalize(p.v) * max_speed
-            p.v = x
-        end
-        new_v = p.v
-
-        # use trapezium approximation for displacement (s). s = ∫v dt
-        Δs = 0.5 * Δt * (old_v + new_v)
-        p.pos += Δs
+# Compute net acceleration on particle p at position pos, with all other particles
+# held at their current positions. Used for RK4 sub-step force evaluations.
+function acceleration_at(p::Particle, particles::Vector{Particle}, pos::SVector{2,Float64})::SVector{2,Float64}
+    if p.fixed
+        return SA[0.0, 0.0]
     end
-    p.previous_force_applied = p.force_applied
+    a = SA[0.0, 0.0]
+    for q ∈ particles
+        if q == p
+            continue
+        end
+        diff = q.pos - pos
+        a += normalize(diff) * G * q.mass * inv(EPS_SOFTENING + norm(diff)^2)
+        # mass of p cancels: F/m = G * q.mass / (eps + d^2)
+    end
+    return a
+end
+
+# Advance particle p by one timestep Δt using 4th-order Runge-Kutta integration.
+# State vector is (pos, v); derivative is (v, a) where a = sum of gravitational
+# accelerations from all other particles.
+function rk4_update_particle!(max_speed::Float64, particles::Vector{Particle}, p::Particle)::Nothing
+    if p.fixed
+        p.force_applied = SA[0.0, 0.0]
+        return nothing
+    end
+
+    pos0 = p.pos
+    v0   = p.v
+
+    # k1 — derivative at current state
+    k1_v   = acceleration_at(p, particles, pos0)
+    k1_pos = v0
+
+    # k2 — derivative at midpoint estimated with k1
+    k2_v   = acceleration_at(p, particles, pos0 + (Δt/2) * k1_pos)
+    k2_pos = v0 + (Δt/2) * k1_v
+
+    # k3 — derivative at midpoint estimated with k2
+    k3_v   = acceleration_at(p, particles, pos0 + (Δt/2) * k2_pos)
+    k3_pos = v0 + (Δt/2) * k2_v
+
+    # k4 — derivative at end of interval estimated with k3
+    k4_v   = acceleration_at(p, particles, pos0 + Δt * k3_pos)
+    k4_pos = v0 + Δt * k3_v
+
+    new_pos = pos0 + (Δt/6) * (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)
+    new_v   = v0   + (Δt/6) * (k1_v   + 2*k2_v   + 2*k3_v   + k4_v)
+
+    if norm(new_v) > max_speed
+        new_v = normalize(new_v) * max_speed
+    end
+
+    p.pos = new_pos
+    p.v   = new_v
     p.force_applied = SA[0.0, 0.0]
     nothing
 end

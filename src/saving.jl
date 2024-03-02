@@ -68,16 +68,3 @@ function get_untitled_filename_number()::Int
     # extract the numbers from the untitled files
     return max(filenums...) + 1
 end
-
-function test_saving(particles::Vector{Particle})::Vector{Particle}
-    fp = "data/save.txt"
-    file = open(fp, "w")
-    save!(file, particles, Vector{Int64}())
-    close(file)
-
-    file = open(fp, "r")
-    data, ps = read(file, Particle)
-    ps::Vector{Particle}
-    close(file)
-    return ps
-end

@@ -113,3 +113,62 @@ function make_bh(ps::Vector{Particle})::BHTree
     calculate_centres_of_mass!(bh)
     return bh
 end
+
+function acceleration_bh_at(p::Particle, root::BHTree, pos::SVector{2,Float64})::SVector{2,Float64}
+    if p.fixed
+        return SA[0.0, 0.0]
+    end
+    a = SA[0.0, 0.0]
+    the_q::Queue{BHTree} = Queue{BHTree}()
+    enqueue!(the_q, root)
+    while !isempty(the_q)
+        current::BHTree = dequeue!(the_q)
+        distance_to_centre::Float64 = norm(pos - current.centre)
+        if current.side_length < mac * distance_to_centre || all(is_nothing, current.children)
+            # skip the node if it contains only p itself
+            if !(length(current.particles) == 1 && only(current.particles) == p)
+                diff = current.centre_of_mass - pos
+                a += normalize(diff) * G * current.total_mass * inv(EPS_SOFTENING + norm(diff)^2)
+            end
+        else
+            foreach(enqueue!$the_q, drop_nothings(current.children))
+        end
+    end
+    return a
+end
+
+function rk4_update_particle!(max_speed::Float64, root::BHTree, p::Particle)::Nothing
+    if p.fixed
+        return nothing
+    end
+
+    pos0 = p.pos
+    v0   = p.v
+
+    # k1 — derivative at current state
+    k1_v   = acceleration_bh_at(p, root, pos0)
+    k1_pos = v0
+
+    # k2 — derivative at midpoint estimated with k1
+    k2_v   = acceleration_bh_at(p, root, pos0 + (Δt/2) * k1_pos)
+    k2_pos = v0 + (Δt/2) * k1_v
+
+    # k3 — derivative at midpoint estimated with k2
+    k3_v   = acceleration_bh_at(p, root, pos0 + (Δt/2) * k2_pos)
+    k3_pos = v0 + (Δt/2) * k2_v
+
+    # k4 — derivative at end of interval estimated with k3
+    k4_v   = acceleration_bh_at(p, root, pos0 + Δt * k3_pos)
+    k4_pos = v0 + Δt * k3_v
+
+    new_pos = pos0 + (Δt/6) * (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)
+    new_v   = v0   + (Δt/6) * (k1_v   + 2*k2_v   + 2*k3_v   + k4_v)
+
+    if norm(new_v) > max_speed
+        new_v = normalize(new_v) * max_speed
+    end
+
+    p.pos = new_pos
+    p.v   = new_v
+    nothing
+end

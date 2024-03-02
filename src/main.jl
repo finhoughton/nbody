@@ -32,14 +32,8 @@ function main()::Nothing
     # -- particle setup --
 
     particles::Vector{Particle} = []
-    append!(particles, random_particles(
-        n=50,
-        edge_len=EDGE,
-        mass_mean=10.0^25,
-        mass_stddev=5 * 10.0^24,
-        velocity_stddev=5 * 10.0^8,
-    ))
-    push!(particles, Particle(mass=10.0^30, fixed=false))
+    push!(particles, Particle(mass=1e26, pos=SA[1e10, 1e10], v=SA[-1e9, 0]))
+    push!(particles, Particle(mass=1e30, fixed=false))
 
     for (i, p) ∈ enumerate(particles)
         p.id = i
@@ -116,12 +110,13 @@ function main()::Nothing
 
     function step_sim!(t::Timer)
         if use_bh
+            # build the tree once per timestep; RK4 sub-steps query it at
+            # intermediate positions without rebuilding — O(n log n) per step
             root::BHTree = make_bh(particles)
-            step!(root, particles)
+            foreach(p -> rk4_update_particle!(particle_max_speed, root, p), particles)
         else
-            step!(particles)
+            foreach(p -> rk4_update_particle!(particle_max_speed, particles, p), particles)
         end
-        foreach(update_particle!$particle_max_speed, particles)
         iteration_num += 1
     end
 
