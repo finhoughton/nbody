@@ -23,6 +23,10 @@ function update_gui!(xs, ys, particles::Vector{Particle})::Nothing
     nothing
 end
 
+function positive_float(s::String)::Bool
+    (x = tryparse(Float64, s)) ≢ nothing && x > 0
+end
+
 function main()::Nothing
 
     # -- particle setup --
@@ -89,7 +93,7 @@ function main()::Nothing
     # -- MAC box --
 
     Label(menu[2, 2], "MAC: ")
-    mac_tb = Textbox(menu[2, 3], placeholder="1", validator=Float64)
+    mac_tb = Textbox(menu[2, 3], placeholder="1", validator=positive_float)
 
     on(mac_tb.stored_string) do s
         mac = parse(Float64, s)
@@ -99,7 +103,7 @@ function main()::Nothing
     # -- particle max speed --
 
     speed_lb = Label(menu[5, 1], "particle max speed is:\nInf")
-    max_speed_tb = Textbox(menu[5, 2], placeholder="Inf", validator=(s -> (x = tryparse(Float64, s)) ≢ nothing && x > 0))
+    max_speed_tb = Textbox(menu[5, 2], placeholder="Inf", validator=positive_float)
 
     particle_max_speed::Float64 = Inf
     on(max_speed_tb.stored_string) do s
@@ -210,7 +214,7 @@ function main()::Nothing
     generate_button = Button(menu[4, 1]; label="Generate particless")
 
     Label(menu[3, 2], "n:")
-    num_particles_tb = Textbox(menu[4, 2], placeholder="0", validator=Int64)
+    num_particles_tb = Textbox(menu[4, 2], placeholder="0", validator=(s -> (x = tryparse(Int64, s)) ≢ nothing && x > 0))
 
     num_particles::Int64 = 0
     on(num_particles_tb.stored_string) do s
@@ -218,21 +222,21 @@ function main()::Nothing
     end
 
     Label(menu[3, 3], "mass mean:")
-    mass_mean_tb = Textbox(menu[4, 3], placeholder="1e24", validator=Float64)
+    mass_mean_tb = Textbox(menu[4, 3], placeholder="1e24", validator=positive_float)
     mass_mean::Float64 = 1e24
     on(mass_mean_tb.stored_string) do s
         mass_mean = parse(Float64, s)
     end
 
     Label(menu[3, 4], "mass stdddev:")
-    mass_stddev_tb = Textbox(menu[4, 4], placeholder="0", validator=Float64)
+    mass_stddev_tb = Textbox(menu[4, 4], placeholder="0", validator=positive_float)
     mass_stddev::Float64 = 0
     on(mass_stddev_tb.stored_string) do s
         mass_stddev = parse(Float64, s)
     end
 
     Label(menu[3, 5], "velocity stdddev:")
-    velocity_stddev_tb = Textbox(menu[4, 5], placeholder="0", validator=Float64)
+    velocity_stddev_tb = Textbox(menu[4, 5], placeholder="0", validator=positive_float)
     velocity_stddev::Float64 = 0
     on(velocity_stddev_tb.stored_string) do s
         velocity_stddev = parse(Float64, s)
